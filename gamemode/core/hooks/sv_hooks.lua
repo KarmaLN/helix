@@ -236,6 +236,20 @@ function GM:EntityTakeDamage(entity, dmgInfo)
 	end
 end
 
+ function GM:CanPlayerCreateCharacter(client, payload)
+        local cooldown = ix.config.Get("Character Creating Cooldown")
+
+        if client.ixCharacters == 0 then
+            return
+        end
+
+        if (cooldown) then
+            if (client.CharCreatingCooldown or 0) > os.time() then
+                return false, "You must wait before creating another character."
+            end
+        end
+    end
+
 function GM:PrePlayerLoadedCharacter(client, character, lastChar)
 	-- Reset all bodygroups
 	client:ResetBodygroups()
