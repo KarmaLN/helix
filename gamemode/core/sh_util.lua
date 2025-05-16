@@ -1163,3 +1163,66 @@ end
 
 ix.util.Include("helix/gamemode/core/meta/sh_entity.lua")
 ix.util.Include("helix/gamemode/core/meta/sh_player.lua")
+
+--- Converts a unit to meters.
+-- @realm shared
+-- @number unit Unit to convert
+-- @treturn number Converted unit
+-- @usage print(ix.util.UnitToMeters(256))
+-- > 6.5024
+function ix.util.UnitToMeters(unit)
+    return unit * 0.0254
+end
+
+--- Converts meters to a unit.
+-- @realm shared
+-- @number meters Meters to convert
+-- @treturn number Converted meters
+-- @usage print(ix.util.MetersToUnit(20))
+-- > 787.40157480315
+function ix.util.MetersToUnit(meters)
+    return meters / 0.0254
+end
+
+--- Converts seconds into a formatted time string.
+-- @realm shared
+-- @number time The time in seconds.
+-- @treturn string Formatted string in H:MM:SS format.
+function ix.util.FormatTime(time)
+    local hours = math.floor(time / 3600)
+    local minutes = math.floor((time % 3600) / 60)
+    local seconds = time % 60
+
+    return string.format("%02d:%02d:%02d", hours, minutes, seconds)
+end
+
+function ix.util.FormatNumber(number)
+    
+    local Numbers = {
+		[5] = {10^6, "Million"},
+		[4] = {10^9, "Billion"},
+		[3] = {10^12, "Trillion"},
+		[2] = {10^15, "Quadrillion"},
+		[1] = {10^18, "Quintillion"},
+	}
+
+	local t = Numbers
+	for i = 1, #Numbers do
+
+		local Div = t[i][1]
+		local Str = t[i][2]
+
+		if number >= Div or number <= -Div then
+			return string.Comma(math.Round( number / Div, 1)) .. " " .. Str 
+
+		end
+
+	end
+
+	return string.Comma(math.Round(number, 1))
+
+end
+
+function ix.util.Chance(chance)
+    return math.random(100) <= chance
+end
