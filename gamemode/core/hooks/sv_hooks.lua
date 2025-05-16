@@ -298,6 +298,9 @@ function GM:PlayerLoadedCharacter(client, character, lastChar)
 		timer.Remove(uniqueID)
 	end
 
+	local cooldownTime = ix.config.Get("Character Loading Cooldown Time", 0)
+    client.CharLoadingCooldown = os.time() + cooldownTime
+
 	hook.Run("PlayerLoadout", client)
 end
 
