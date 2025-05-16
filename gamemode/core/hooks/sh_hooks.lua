@@ -448,7 +448,7 @@ function GM:CanPlayerUseCharacter(client, character)
 
     if (cooldown) then
         if (client.CharLoadingCooldown or 0) > os.time() then
-            if (client:IsAdmin() then 
+            if client:IsAdmin() then 
                 return true 
             end
             return false, "You must wait before loading another character."
