@@ -411,10 +411,8 @@ function GM:OnCharacterCreated(client, character)
 	end
 
 	local cooldowntime = ix.config.Get("Character Creating Cooldown Time")
-
-    if client.ixCharacters > 0 then
-        client.CharCreatingCooldown = os.time() + cooldowntime
-    end
+    client.CharCreatingCooldown = os.time() + cooldowntime
+	
 end
 
 function GM:GetDefaultCharacterName(client, faction)
