@@ -221,3 +221,21 @@ end, {
 	data = {min = 0.01, max = 120},
 	category = "date"
 })
+
+ix.config.Add("Character Loading Cooldown", true, "Should there be a Cooldown on Loading Characters?", nil,{
+	category = "Characters"
+})
+
+ix.config.Add("Character Loading Cooldown Time", 120, "How many Seconds is the Cooldown?", nil, {
+    data = {min = 30, max = 1800},
+    category = "Characters"
+})
+
+ix.config.Add("Character Creating Cooldown", true, "Should there be a Cooldown on Creating Characters?", nil,{
+	category = "Characters"
+})
+
+ix.config.Add("Character Creating Cooldown Time", 300, "How many Seconds is the Cooldown?", nil, {
+    data = {min = 30, max = 1800},
+    category = "Characters"
+})
