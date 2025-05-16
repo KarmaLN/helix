@@ -409,6 +409,12 @@ function GM:OnCharacterCreated(client, character)
 	if (faction and faction.OnCharacterCreated) then
 		faction:OnCharacterCreated(client, character)
 	end
+
+	local cooldowntime = ix.config.Get("Character Creating Cooldown Time")
+
+    if client.ixCharacters > 0 then
+        client.CharCreatingCooldown = os.time() + cooldowntime
+    end
 end
 
 function GM:GetDefaultCharacterName(client, faction)
@@ -437,6 +443,21 @@ function GM:CanPlayerUseCharacter(client, character)
 	if (!bHasWhitelist) then
 		return false, "@noWhitelist"
 	end
+
+	local cooldown = ix.config.Get("Character Loading Cooldown")
+
+    if (cooldown) then
+        if (client.CharLoadingCooldown or 0) > os.time() then
+            if (client:IsAdmin() then 
+                return true 
+            end
+            return false, "You must wait before loading another character."
+        end
+    end
+
+    if (client:IsRestricted()) then
+        return false, "You are currently Restricted"
+    end
 end
 
 function GM:CanProperty(client, property, entity)
