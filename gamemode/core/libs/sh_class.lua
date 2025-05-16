@@ -193,6 +193,35 @@ if (SERVER) then
 		local info = ix.class.list[class]
 		local info2 = ix.class.list[oldClass]
 
+		local function AddItems(items)
+        	for _, uniqueID in ipairs(items or {}) do
+            	if not inv:HasItem(uniqueID) then
+               	 	inv:Add(uniqueID, 1)
+            	end
+        	end
+    	end
+
+    	local function RemoveItems(items)
+        	for _, uniqueID in ipairs(items or {}) do
+            	local item = inv:HasItem(uniqueID)
+            	if item then 
+					item:Remove() 
+				end
+        	end
+    	end
+
+    	local function GiveWeapons(weapons)
+        	for _, weapon in ipairs(weapons or {}) do
+            	client:Give(weapon)
+        	end
+    	end
+
+    	local function StripWeapons(weapons)
+        	for _, weapon in ipairs(weapons or {}) do
+            	client:StripWeapon(weapon)
+        	end
+    	end
+
 		if (info.OnSet) then
 			info:OnSet(client)
 		end
@@ -201,6 +230,36 @@ if (SERVER) then
 			info2:OnLeave(client)
 		end
 
+		if info.model then
+            char:SetModel(info.model)
+        end
+
+        if info.health then
+            client:SetHealth(info.health)
+            client:SetMaxHealth(info.health)
+        end
+
+        if info.armor then
+            client:SetArmor(info.armor)
+            client:SetMaxArmor(info.armor)
+        end
+
+		if (info2 and info2.items) then
+			RemoveItems(info2.items)
+		end
+
+		if (info2 and info2.items) then
+        	StripWeapons(info2.weapons)
+		end
+
+		if info.items then
+			AddItems(info.items)
+		end
+
+		if info.weapons then
+        	GiveWeapons(info.weapons)
+		end
+		
 		net.Start("ixClassUpdate")
 			net.WriteEntity(client)
 		net.Broadcast()
