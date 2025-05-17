@@ -248,7 +248,7 @@ if (SERVER) then
 			RemoveItems(info2.items)
 		end
 
-		if (info2 and info2.items) then
+		if (info2 and info2.weapons) then
         	StripWeapons(info2.weapons)
 		end
 
