@@ -190,6 +190,8 @@ if (SERVER) then
 	end
 
 	function GM:PlayerJoinedClass(client, class, oldClass)
+		local char = client:GetCharacter()
+		local inv = char:GetInventory()
 		local info = ix.class.list[class]
 		local info2 = ix.class.list[oldClass]
 
