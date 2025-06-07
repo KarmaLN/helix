@@ -41,9 +41,11 @@ function ix.hud.PopulateItemTooltip(tooltip, item)
 	name:SetMaxWidth(math.max(name:GetMaxWidth(), ScrW() * 0.5))
 	name:SizeToContents()
 
-	local description = tooltip:AddRow("description")
-	description:SetText(item:GetDescription() or "")
-	description:SizeToContents()
+	if item:GetDescription() and (item:GetDescription() != "") then
+		local description = tooltip:AddRow("description")
+		description:SetText(item:GetDescription() or "")
+		description:SizeToContents()
+	end 
 
 	if (item.PopulateTooltip) then
 		item:PopulateTooltip(tooltip)
