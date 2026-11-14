@@ -249,6 +249,10 @@ function ix.util.FindPlayer(identifier, bAllowPatterns)
 	end
 end
 
+function ix.util.IsValidPlayer(client)
+    return IsValid(client) and client:IsPlayer()
+end
+
 --- Checks to see if two strings are equivalent using a fuzzy manner. Both strings will be lowered, and will return `true` if
 -- the strings are identical, or if `b` is a substring of `a`.
 -- @realm shared

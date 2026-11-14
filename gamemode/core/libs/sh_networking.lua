@@ -1,0 +1,342 @@
+--[[
+    Helix Framework
+    Copyright (c) 2025 Helix Framework Contributors
+
+    This file is part of the Helix Framework and is licensed under the MIT License.
+    You may use, copy, modify, merge, publish, distribute, and sublicense this file
+    under the terms of the LICENSE file included with this project.
+
+    Attribution is required. If you use or modify this file, you must retain this notice.
+]]
+
+-- ix.net
+-- Streaming data layer using sfs. NetStream-style API.
+-- @realm shared
+
+ix.net = ix.net or {}
+ix.net.stored = ix.net.stored or {}
+ix.net.cooldown = ix.net.cooldown or {}
+ix.net.queue = ix.net.queue or {}
+ix.net.queueActive = ix.net.queueActive or false
+
+--- Enqueue a net job to prevent overlapping net.Start calls.
+-- @param job function Callback that receives a done() function.
+function ix.net:Enqueue(job)
+    if ( !isfunction(job) ) then return end
+
+    self.queue[#self.queue + 1] = job
+
+    if ( self.queueActive ) then return end
+
+    self:ProcessQueue()
+end
+
+--- Processes the next queued net job.
+function ix.net:ProcessQueue()
+    if ( self.queueActive ) then return end
+
+    local job = self.queue[1]
+    if ( !isfunction(job) ) then return end
+
+    self.queueActive = true
+    table.remove(self.queue, 1)
+
+    local function done()
+        self.queueActive = false
+
+        if ( self.queue[1] == nil ) then return end
+
+        timer.Simple(0, function()
+            if ( !ix or !ix.net ) then return end
+
+            ix.net:ProcessQueue()
+        end)
+    end
+
+    job(done)
+end
+
+-- GMod net messages cap at 64 KiB. Leave headroom for the message name + null
+-- terminator + framing bits so we stay comfortably under the engine limit.
+local IX_NET_MAX_PAYLOAD = 65000
+
+--- Builds the encoded payload for a net message.
+-- @param arguments table
+-- @return string|boolean Encoded payload or false on failure.
+function ix.net:BuildPayload(arguments)
+    local encoded = sfs.encode(arguments)
+
+    if ( !isstring(encoded) or #encoded < 1 ) then
+        return false
+    end
+
+    return encoded
+end
+
+--- Queues a net message to avoid overlapping net.Start calls.
+-- @param name string
+-- @param arguments table
+-- @param sendFunc function
+-- @param debugMessage string
+-- @param warningMessage string
+function ix.net:QueueMessage(name, arguments, sendFunc, debugMessage, warningMessage)
+    if ( !isfunction(sendFunc) ) then return end
+
+    local encoded = self:BuildPayload(arguments)
+    if ( !encoded ) then return end
+
+    if ( #encoded > IX_NET_MAX_PAYLOAD ) then
+        MsgC(Color(255, 180, 50), "[NET] Warning: Refusing to send '" .. tostring(name) .. "': payload is " .. #encoded .. " bytes (max " .. IX_NET_MAX_PAYLOAD .. ")\n")
+        return
+    end
+
+    self:Enqueue(function(done)
+        net.Start("ix.net.msg")
+        net.WriteString(name)
+        net.WriteData(encoded, #encoded)
+
+        sendFunc()
+
+        if ( isstring(debugMessage) and debugMessage != "" ) then
+            ix.util:PrintDebug(debugMessage)
+        end
+
+        if ( isstring(warningMessage) and warningMessage != "" ) then
+            ix.util:PrintWarning(warningMessage)
+        end
+
+        done()
+    end)
+end
+
+--- Hooks a network message.
+-- @string name Unique identifier.
+-- @func callback Callback with player, unpacked arguments.
+function ix.net:Hook(name, callback, bNoDelay)
+    self.stored[name] = {callback, bNoDelay or false}
+end
+
+if ( SERVER ) then
+    util.AddNetworkString("ix.net.msg")
+
+    -- per request of eon.
+    function ix.net:StartPVS(position, name, ...)
+        if ( !isvector(position) ) then return end
+
+        self:QueueMessage(name, {...}, function()
+            net.SendPVS(position)
+        end, "[NET] Sent '" .. name .. "' to PVS at " .. tostring(position))
+    end
+
+    function ix.net:StartPAS(position, name, ...)
+        if ( !isvector(position) ) then return end
+
+        self:QueueMessage(name, {...}, function()
+            net.SendPAS(position)
+        end, "[NET] Sent '" .. name .. "' to PAS at " .. tostring(position))
+    end
+
+    --- Starts a stream.
+    -- @param target Player, table, vector or nil (nil = broadcast or to server).
+    -- @string name Hook name.
+    -- @vararg Arguments to send.
+    function ix.net:Start(target, name, ...)
+        local arguments = {...}
+        -- Fast paths
+        if ( target == nil ) then
+            self:QueueMessage(name, arguments, function()
+                net.Broadcast()
+            end, "[NET] Sent '" .. name .. "' to all clients")
+
+            return
+        end
+
+        if ( type(target) == "Player" ) then
+            if ( !ix.util.IsValidPlayer(target) ) then return end
+
+            self:QueueMessage(name, arguments, function()
+                net.Send(target)
+            end, "[NET] Sent '" .. name .. "' to " .. target:Nick())
+
+            return
+        end
+
+        if ( istable(target) ) then
+            local recipients = {}
+            local targetCount = #target
+
+            for i = 1, targetCount do
+                local v = target[i]
+
+                if ( ix.util.IsValidPlayer(v) ) then
+                    recipients[#recipients + 1] = v
+                end
+            end
+
+            if ( recipients[1] != nil ) then
+                self:QueueMessage(name, arguments, function()
+                    net.Send(recipients)
+                end, "[NET] Sent '" .. name .. "' to " .. #recipients .. " recipients")
+            end
+
+            return
+        end
+
+        -- Fallback: broadcast if caller passed garbage
+        self:QueueMessage(name, arguments, function()
+            net.Broadcast()
+        end, nil, "ix.net:Start called with invalid target, broadcasting to all clients instead")
+    end
+
+    --- Starts a stream, sends to people other than the specified target.
+    -- @param target Player, table, vector or nil (nil = broadcast or to server).
+    -- @string name Hook name.
+    -- @vararg Arguments to send.
+    function ix.net:StartOmit(target, name, ...)
+        local arguments = {...}
+        -- Fast paths
+        if ( target == nil ) then
+            self:QueueMessage(name, arguments, function()
+                net.Broadcast()
+            end, "[NET] Sent '" .. name .. "' to all clients")
+
+            return
+        end
+
+        if ( type(target) == "Player" ) then
+            if ( !ix.util.IsValidPlayer(target) ) then return end
+
+            self:QueueMessage(name, arguments, function()
+                net.SendOmit(target)
+            end, "[NET] Sent '" .. name .. "' to " .. target:Nick())
+
+            return
+        end
+
+        if ( istable(target) ) then
+            local recipients = {}
+            local targetCount = #target
+
+            for i = 1, targetCount do
+                local v = target[i]
+
+                if ( ix.util.IsValidPlayer(v) ) then
+                    recipients[#recipients + 1] = v
+                end
+            end
+
+            if ( recipients[1] != nil ) then
+                self:QueueMessage(name, arguments, function()
+                    net.SendOmit(recipients)
+                end, "[NET] Sent '" .. name .. "' to " .. #recipients .. " recipients")
+            end
+
+            return
+        end
+
+        -- Fallback: broadcast if caller passed garbage
+        self:QueueMessage(name, arguments, function()
+            net.Broadcast()
+        end, nil, "ix.net:StartOmit called with invalid target, broadcasting to all clients instead")
+    end
+else
+    --- Starts a stream.
+    -- @param target Player, table, vector or nil (nil = broadcast or to server).
+    -- @string name Hook name.
+    -- @vararg Arguments to send.
+    function ix.net:Start(name, ...)
+        local arguments = {...}
+
+        self:QueueMessage(name, arguments, function()
+            net.SendToServer()
+        end, "[NET] Sent '" .. name .. "' to server")
+    end
+end
+
+net.Receive("ix.net.msg", function(len, client)
+    local name = net.ReadString()
+    if ( !isstring(name) or name == "" ) then return end
+
+    -- Derive bytes from `len` (always in bits) rather than net.BytesLeft(), whose
+    -- first return can be the bit count on some builds, yielding bogus sizes.
+    local bytesLeft = math.floor(len / 8) - (#name + 1)
+    if ( !isnumber(bytesLeft) or bytesLeft <= 0 ) then return end
+
+    if (bytesLeft > IX_NET_MAX_PAYLOAD) then
+        MsgC(Color(255, 180, 50), "[NET] Warning: Payload exceeds maximum size (" .. bytesLeft .. " bytes)\n")
+        return
+    end
+
+    local readOk, raw = pcall(net.ReadData, bytesLeft)
+    if ( !readOk or !isstring(raw) ) then
+        MsgC(Color(255, 180, 50), "[NET] Warning: ReadData failed for '" .. name .. "' (" .. bytesLeft .. " bytes)\n")
+        return
+    end
+
+    local ok, decoded = pcall(sfs.decode, raw)
+    if ( !ok or !istable(decoded) ) then
+        MsgC(Color(255, 180, 50), "[NET] Warning: Decode failed for '" .. name .. "'\n")
+        return
+    end
+
+    local stored = ix.net.stored[name]
+    if ( !istable(stored) or #stored < 1 ) then
+        MsgC(Color(255, 180, 50), "[NET] Warning: No handler for '" .. name .. "'\n")
+        return
+    end
+
+    local callback = stored[1]
+    if ( !isfunction(callback) ) then
+        MsgC(Color(255, 180, 50), "[NET] Warning: No handler for '" .. name .. "'\n")
+        return
+    end
+
+    if ( SERVER ) then
+        local configCooldown = ix.config.Get("networking.cooldown", 0.1)
+        if ( !stored[2] and isnumber(configCooldown) and configCooldown > 0 ) then
+            local steam64 = client:SteamID64()
+            if ( !istable(ix.net.cooldown[steam64]) ) then ix.net.cooldown[steam64] = {} end
+            if ( !isnumber(ix.net.cooldown[steam64][name]) ) then ix.net.cooldown[steam64][name] = 0 end
+
+            local coolDown = ix.net.cooldown[steam64][name]
+            if ( isnumber(coolDown) and coolDown > CurTime() ) then
+                MsgC(Color(255, 180, 50), "[NET] Warning: '" .. name .. "' is on cooldown for " .. math.ceil(coolDown - CurTime()) .. " seconds\n")
+                return
+            end
+
+            ix.net.cooldown[steam64][name] = CurTime() + (configCooldown or 0.1)
+        end
+
+        callback(client, unpack(decoded))
+    else
+        callback(unpack(decoded))
+    end
+
+    ix.util:PrintDebug("[NET] Received '" .. name .. "' from " .. (SERVER and client:Nick() or "server"))
+end)
+
+--[[
+--- Example usage:
+if ( SERVER ) then
+    ix.net:Hook("test", function(client, val, val2)
+        if ( istable(val) ) then
+            print(client, "sent table:", table.concat(val, ", "))
+            return
+        end
+
+        print(client, "sent:", val, val2)
+    end)
+else
+    ix.net:Hook("test", function(val, val2)
+        print("your steamid is:", val)
+        print("server says:", val2)
+    end)
+end
+
+if ( CLIENT ) then
+    ix.net:Start("test", {89})
+    ix.net:Start("test", "hello", "world")
+else
+    ix.net:Start(client, "test", client:SteamID(), "server says hi")
+end
+]]

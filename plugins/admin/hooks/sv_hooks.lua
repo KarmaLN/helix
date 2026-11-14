@@ -1,0 +1,116 @@
+local PLUGIN = PLUGIN or {}
+
+function PLUGIN:PlayerReady(client)
+    if ( !isfunction(self.SyncPlayerUsergroup) ) then
+        local usergroup = client:GetUsergroup()
+        if ( client:IsListenServerHost() ) then
+            usergroup = "superadmin"
+        end
+
+        client:SetUserGroup(usergroup)
+        return
+    end
+
+    self:SyncPlayerUsergroup(client)
+end
+
+function PLUGIN:PhysgunPickup(client, entity)
+    if ( CAMI.PlayerHasAccess(client, "Helix - Pickup Players", nil) != true ) then
+        return false
+    end
+
+    return true
+end
+
+function PLUGIN:OnPhysgunPickup(client, entity)
+    if ( CAMI.PlayerHasAccess(client, "Helix - Pickup Players", nil) and ix.util.IsValidPlayer(entity) ) then
+        entity:SetMoveType(MOVETYPE_NOCLIP)
+    end
+end
+
+function PLUGIN:PhysgunDrop(client, entity)
+    if ( CAMI.PlayerHasAccess(client, "Helix - Pickup Players", nil) and ix.util.IsValidPlayer(entity) ) then
+        entity:SetMoveType(MOVETYPE_WALK)
+    end
+end
+
+function PLUGIN:EntityTakeDamage(target, dmgInfo)
+    if ( ix.util.IsValidPlayer(target) and target:InNoclip() ) then
+        return true
+    end
+end
+
+function PLUGIN:PlayerSpawnEffect(client, model)
+    if ( CAMI.PlayerHasAccess(client, "Helix - Spawn Effects", nil) != true ) then
+        return false
+    end
+
+    return true
+end
+
+function PLUGIN:PlayerSpawnNPC(client, npc, weapon)
+    if ( CAMI.PlayerHasAccess(client, "Helix - Spawn NPCs", nil) != true ) then
+        return false
+    end
+
+    return true
+end
+
+function PLUGIN:PlayerSpawnProp(client, model)
+    if ( CAMI.PlayerHasAccess(client, "Helix - Spawn Props", nil) != true ) then
+        return false
+    end
+
+    return true
+end
+
+function PLUGIN:PlayerSpawnRagdoll(client, model)
+    if ( CAMI.PlayerHasAccess(client, "Helix - Spawn Ragdolls", nil) != true ) then
+        return false
+    end
+
+    return true
+end
+
+function PLUGIN:PlayerSpawnSENT(client, model)
+    if ( CAMI.PlayerHasAccess(client, "Helix - Spawn SENTs", nil) != true ) then
+        return false
+    end
+
+    return true
+end
+
+function PLUGIN:PlayerSpawnSWEP(client, weapon, swep)
+    if ( CAMI.PlayerHasAccess(client, "Helix - Spawn Weapons", nil) != true ) then
+        return false
+    end
+
+    return true
+end
+
+function PLUGIN:PlayerGiveSWEP(client, weapon, spawnInfo)
+    if ( CAMI.PlayerHasAccess(client, "Helix - Spawn Weapons", nil) != true ) then
+        return false
+    end
+
+    return true
+end
+
+function PLUGIN:PlayerSpawnVehicle(client, model, name, vehicleTable)
+    if ( CAMI.PlayerHasAccess(client, "Helix - Spawn Vehicles", nil) != true ) then
+        return false
+    end
+
+    return true
+end
+
+--PROTECTION
+
+function PLUGIN:PlayerSwitchFlashlight(client, enabled)
+	if (client.ixAntiSpamFlashlight or 0) > CurTime() and enabled then
+		return false
+	else
+		client.ixAntiSpamFlashlight = CurTime() + 4
+		return true
+	end
+end

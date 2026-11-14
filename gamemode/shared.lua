@@ -82,6 +82,7 @@ ix.util.Include("core/cl_skin.lua")
 ix.util.IncludeDir("core/libs/thirdparty")
 ix.util.Include("core/sh_config.lua")
 ix.util.IncludeDir("core/libs")
+ix.util.IncludeDir("core/util")
 ix.util.IncludeDir("core/derma")
 ix.util.IncludeDir("core/hooks")
 
