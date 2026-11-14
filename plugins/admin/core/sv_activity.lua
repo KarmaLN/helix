@@ -33,6 +33,8 @@ local function NormalizeActivityData(data)
     data.join_hour_samples = math.max(0, tonumber(data.join_hour_samples) or 0)
     data.join_interval_sum = math.max(0, tonumber(data.join_interval_sum) or 0)
     data.join_interval_samples = math.max(0, tonumber(data.join_interval_samples) or 0)
+    data.last_join = math.max(0, tonumber(data.last_join) or 0)
+    data.last_leave = math.max(0, tonumber(data.last_leave) or 0)
 
     return data
 end
@@ -83,9 +85,11 @@ end
 function PLUGIN:SetPlayerActivityData(client, data, bNoDBUpdate)
     if ( !ix.util.IsValidPlayer(client) ) then return end
 
-    client:SetData("admin_activity", NormalizeActivityData(data), {
-        bNoDBUpdate = bNoDBUpdate == true
-    })
+    client:SetData("admin_activity", NormalizeActivityData(data), true)
+
+    if ( bNoDBUpdate != true and isfunction(client.SaveData) ) then
+        client:SaveData()
+    end
 end
 
 function PLUGIN:InvalidateActivityCache()
@@ -113,7 +117,7 @@ function PLUGIN:GetRawActivityRows(callback, bBypassCache)
 
     cache.querying = true
 
-    local query = mysql:Select("ax_players")
+    local query = mysql:Select("ix_players")
     query:Callback(function(result)
         cache.querying = false
 
@@ -140,7 +144,7 @@ end
 function PLUGIN:BuildActivityRow(rawRow)
     if ( !istable(rawRow) ) then return nil end
 
-    local steamID64 = tostring(rawRow.steamid64 or "")
+    local steamID64 = tostring(rawRow.steamid64 or rawRow.steamid or "")
     if ( steamID64 == "" ) then return nil end
 
     local onlineClient = player.GetBySteamID64(steamID64)
@@ -148,18 +152,15 @@ function PLUGIN:BuildActivityRow(rawRow)
         onlineClient = nil
     end
 
-    local session = onlineClient and onlineClient:GetTable().axAdminActivitySession or nil
+    local session = onlineClient and onlineClient:GetTable().ixAdminActivitySession or nil
+    local playerData = isstring(rawRow.data) and util.JSONToTable(rawRow.data) or nil
+    playerData = istable(playerData) and playerData or {}
 
     local activityData
     if ( onlineClient ) then
         activityData = self:GetPlayerActivityData(onlineClient)
     else
-        local parsed = ix.util:SafeParseTable(rawRow.data)
-        if ( !istable(parsed) ) then
-            parsed = {}
-        end
-
-        activityData = NormalizeActivityData(parsed.admin_activity)
+        activityData = NormalizeActivityData(playerData.admin_activity)
     end
 
     local sessionPlaytime = 0
@@ -167,7 +168,10 @@ function PLUGIN:BuildActivityRow(rawRow)
         sessionPlaytime = math.max(0, os.time() - (tonumber(session.joinUnix) or os.time()))
     end
 
-    local persistedPlaytime = math.max(0, tonumber(activityData.total_playtime) or tonumber(rawRow.play_time) or 0)
+    local persistedPlaytime = math.max(0, tonumber(activityData.total_playtime) or 0)
+    if ( persistedPlaytime <= 0 ) then
+        persistedPlaytime = math.max(0, tonumber(rawRow.play_time) or 0)
+    end
     local totalPlaytime = persistedPlaytime + sessionPlaytime
 
     local pingTotal = math.max(0, tonumber(activityData.total_ping) or 0)
@@ -198,15 +202,15 @@ function PLUGIN:BuildActivityRow(rawRow)
     local joinIntervalSamples = math.max(0, tonumber(activityData.join_interval_samples) or 0)
     local averageJoinInterval = joinIntervalSamples > 0 and (joinIntervalSum / joinIntervalSamples) or nil
 
-    local usergroup = tostring(rawRow.usergroup or "")
+    local usergroup = tostring(rawRow.usergroup or playerData.admin_usergroup or "")
     if ( usergroup == "" and onlineClient ) then
-        usergroup = tostring(onlineClient:GetUserGroup() or "user")
+        usergroup = tostring(self:GetPlayerUsergroup(onlineClient) or "user")
     end
     if ( usergroup == "" ) then
         usergroup = "user"
     end
 
-    local name = tostring(rawRow.name or "")
+    local name = tostring(rawRow.name or rawRow.steam_name or "")
     if ( onlineClient ) then
         name = onlineClient:SteamName()
     end
@@ -218,8 +222,8 @@ function PLUGIN:BuildActivityRow(rawRow)
         steamid64 = steamID64,
         name = name,
         usergroup = usergroup,
-        last_join = tonumber(rawRow.last_join) or 0,
-        last_leave = tonumber(rawRow.last_leave) or 0,
+        last_join = tonumber(rawRow.last_join or rawRow.last_join_time) or tonumber(activityData.last_join) or 0,
+        last_leave = tonumber(rawRow.last_leave) or tonumber(activityData.last_leave) or 0,
         is_online = onlineClient != nil,
         current_ping = onlineClient and math.max(0, tonumber(onlineClient:Ping()) or 0) or 0,
         session_playtime = sessionPlaytime,
@@ -291,10 +295,11 @@ function PLUGIN:FilterActivityRows(rows, searchQuery)
         local steamID64 = tostring(row.steamid64 or "")
         local usergroup = tostring(row.usergroup or "")
 
+        local normalizedSearch = string.lower(search)
         if (
-            ix.util:FindString(name, search)
-            or ix.util:FindString(steamID64, search)
-            or ix.util:FindString(usergroup, search)
+            string.find(string.lower(name), normalizedSearch, 1, true)
+            or string.find(string.lower(steamID64), normalizedSearch, 1, true)
+            or string.find(string.lower(usergroup), normalizedSearch, 1, true)
         ) then
             filtered[#filtered + 1] = row
         end

@@ -33,6 +33,14 @@ local function TrimText(value, fallback, maxLength)
     return value
 end
 
+local function IsSteamID64(identifier)
+    return isstring(identifier) and #identifier == 17 and string.match(identifier, "^%d+$") != nil
+end
+
+local function IsSteamID(identifier)
+    return isstring(identifier) and string.match(identifier, "^STEAM_%d:%d:%d+$") != nil
+end
+
 local function GetSteamIDFrom64(steamID64)
     if ( !isstring(steamID64) or steamID64 == "" or !isfunction(util.SteamIDFrom64) ) then
         return ""
@@ -111,13 +119,13 @@ function PLUGIN:NormalizeBanIdentifier(identifier)
     identifier = string.Trim(tostring(identifier or ""))
     if ( identifier == "" ) then return nil end
 
-    if ( ix.type:Sanitise(ix.type.steamid64, identifier) ) then
+    if ( IsSteamID64(identifier) ) then
         return identifier
     end
 
-    if ( ix.type:Sanitise(ix.type.steamid, identifier) and isfunction(util.SteamIDTo64) ) then
+    if ( IsSteamID(identifier) and isfunction(util.SteamIDTo64) ) then
         local steamID64 = util.SteamIDTo64(identifier)
-        if ( ix.type:Sanitise(ix.type.steamid64, steamID64) ) then
+        if ( IsSteamID64(steamID64) ) then
             return steamID64
         end
     end
@@ -305,7 +313,7 @@ function PLUGIN:RefreshActiveBanCache(callback)
     end
 
     local unixTime = os.time()
-    local query = "SELECT * FROM `" .. BAN_TABLE .. "` WHERE `revoked_at` = 0 AND (`expires_at` = 0 OR `expires_at` > ?)"
+    local query = "SELECT * FROM `" .. BAN_TABLE .. "` WHERE `revoked_at` = 0 AND (`expires_at` = 0 OR `expires_at` > '" .. mysql:Escape(unixTime) .. "')"
     mysql:RawQuery(query, function(result, status)
         if ( status == false or result == false ) then
             NotifyCallback(callback, false, nil, "Failed to refresh ban cache.")
@@ -323,7 +331,7 @@ function PLUGIN:RefreshActiveBanCache(callback)
         end
 
         NotifyCallback(callback, true, self.banActiveCache)
-    end, nil, {unixTime})
+    end)
 end
 
 function PLUGIN:GetCachedActiveBan(identifier)
@@ -393,7 +401,7 @@ function PLUGIN:GetActiveBan(identifier, callback)
         end
 
         local unixTime = os.time()
-        local query = "SELECT * FROM `" .. BAN_TABLE .. "` WHERE `steamid64` = ? AND `revoked_at` = 0 AND (`expires_at` = 0 OR `expires_at` > ?) ORDER BY `created_at` DESC, `id` DESC LIMIT 1"
+        local query = "SELECT * FROM `" .. BAN_TABLE .. "` WHERE `steamid64` = '" .. mysql:Escape(steamID64) .. "' AND `revoked_at` = 0 AND (`expires_at` = 0 OR `expires_at` > '" .. mysql:Escape(unixTime) .. "') ORDER BY `created_at` DESC, `id` DESC LIMIT 1"
         mysql:RawQuery(query, function(result, status)
             if ( status == false or result == false ) then
                 NotifyCallback(callback, false, nil, "Failed to query active ban.")
@@ -409,7 +417,7 @@ function PLUGIN:GetActiveBan(identifier, callback)
 
             self.banActiveCache[steamID64] = row
             NotifyCallback(callback, true, row)
-        end, nil, {steamID64, unixTime})
+        end)
     end)
 end
 
@@ -702,7 +710,7 @@ function PLUGIN:ValidateClientBan(client, source)
     end)
 end
 
-hook.Add("OnDatabaseTablesCreated", "ix.admin.bans.tables", function()
+hook.Add("DatabaseConnected", "ix.admin.bans.tables", function()
     if ( !istable(PLUGIN) or !isfunction(PLUGIN.EnsureBanTables) ) then return end
 
     PLUGIN:EnsureBanTables()

@@ -17,7 +17,7 @@ local function EnsureSession(client)
     if ( !ix.util.IsValidPlayer(client) ) then return nil end
 
     local clientTable = client:GetTable()
-    local session = clientTable.axAdminActivitySession
+    local session = clientTable.ixAdminActivitySession
     if ( !istable(session) ) then
         session = {
             joinUnix = os.time(),
@@ -26,7 +26,7 @@ local function EnsureSession(client)
             joinHour = os.date("*t").hour or 0
         }
 
-        clientTable.axAdminActivitySession = session
+        clientTable.ixAdminActivitySession = session
     end
 
     return session
@@ -49,11 +49,12 @@ local function RecordSessionStart(plugin, client)
     session.started = true
 
     local activityData = plugin:GetPlayerActivityData(client)
+    activityData.last_join = now
     activityData.total_sessions = math.max(0, tonumber(activityData.total_sessions) or 0) + 1
     activityData.join_hour_sum = (tonumber(activityData.join_hour_sum) or 0) + joinHour
     activityData.join_hour_samples = math.max(0, tonumber(activityData.join_hour_samples) or 0) + 1
 
-    local lastLeave = tonumber(client:GetLastLeave()) or 0
+    local lastLeave = tonumber(activityData.last_leave) or 0
     if ( lastLeave > 0 and now > lastLeave ) then
         activityData.join_interval_sum = math.max(0, tonumber(activityData.join_interval_sum) or 0) + (now - lastLeave)
         activityData.join_interval_samples = math.max(0, tonumber(activityData.join_interval_samples) or 0) + 1
@@ -77,7 +78,7 @@ function PLUGIN:PlayerDisconnected(client)
     if ( !istable(session) ) then return end
 
     local now = os.time()
-    local joinUnix = tonumber(session.joinUnix) or tonumber(client:GetLastJoin()) or now
+    local joinUnix = tonumber(session.joinUnix) or now
     local sessionSeconds = math.max(0, now - joinUnix)
 
     local activityData = self:GetPlayerActivityData(client)
@@ -86,10 +87,11 @@ function PLUGIN:PlayerDisconnected(client)
     activityData.total_ping = math.max(0, tonumber(activityData.total_ping) or 0) + math.max(0, tonumber(session.pingSum) or 0)
     activityData.ping_samples = math.max(0, tonumber(activityData.ping_samples) or 0) + math.max(0, tonumber(session.pingSamples) or 0)
     activityData.last_session_duration = sessionSeconds
+    activityData.last_leave = now
 
     self:SetPlayerActivityData(client, activityData)
 
-    clientTable.axAdminActivitySession = nil
+    clientTable.ixAdminActivitySession = nil
 
     self:InvalidateActivityCache()
 end

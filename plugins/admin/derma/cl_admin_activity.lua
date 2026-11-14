@@ -84,7 +84,7 @@ local function FormatJoinHour(hour)
     local h = math.floor(wrappedMinutes / 60)
     local m = wrappedMinutes % 60
 
-    return ix.util:PadNumber(h, 2) .. ":" .. ix.util:PadNumber(m, 2)
+    return string.format("%02d:%02d", h, m)
 end
 
 local function HasOnlineActions(data)
@@ -131,32 +131,32 @@ end
 function PANEL:BuildToolbar()
     self.toolbar = self:Add("EditablePanel")
     self.toolbar:Dock(TOP)
-    self.toolbar:SetTall(ax.util:ScreenScaleH(22))
-    self.toolbar:DockMargin(0, 0, 0, ax.util:ScreenScaleH(4))
+    self.toolbar:SetTall(ScreenScale(22))
+    self.toolbar:DockMargin(0, 0, 0, ScreenScale(4))
     self.toolbar.Paint = nil
 
-    self.statusLabel = self.toolbar:Add("ax.text")
+    self.statusLabel = self.toolbar:Add("DLabel")
     self.statusLabel:Dock(FILL)
-    self.statusLabel:SetFont("ax.small")
+    self.statusLabel:SetFont("ixSmallFont")
     self.statusLabel:SetText("Loading activity...", true)
     self.statusLabel:SetContentAlignment(4)
 
     self.controls = self:Add("EditablePanel")
     self.controls:Dock(TOP)
-    self.controls:SetTall(ax.util:ScreenScaleH(26))
-    self.controls:DockMargin(0, 0, 0, ax.util:ScreenScaleH(4))
+    self.controls:SetTall(ScreenScale(26))
+    self.controls:DockMargin(0, 0, 0, ScreenScale(4))
     self.controls.Paint = nil
 
-    self.refreshButton = self.controls:Add("ax.button")
+    self.refreshButton = self.controls:Add("DButton")
     self.refreshButton:Dock(RIGHT)
-    self.refreshButton:DockMargin(ax.util:ScreenScale(4), 0, 0, 0)
-    self.refreshButton:SetWide(ax.util:ScreenScale(56))
+    self.refreshButton:DockMargin(ScreenScale(4), 0, 0, 0)
+    self.refreshButton:SetWide(ScreenScale(56))
     self.refreshButton:SetText("Refresh", true)
     self.refreshButton.DoClick = function()
         self:RequestList()
     end
 
-    self.searchEntry = self.controls:Add("ax.text.entry")
+    self.searchEntry = self.controls:Add("DTextEntry")
     self.searchEntry:Dock(FILL)
     self.searchEntry:SetPlaceholderText("Search by name, SteamID64, or usergroup...")
     self.searchEntry.OnValueChange = function(entry, value)
@@ -180,13 +180,13 @@ function PANEL:BuildToolbar()
 
     self.pagination = self:Add("EditablePanel")
     self.pagination:Dock(TOP)
-    self.pagination:SetTall(ax.util:ScreenScaleH(22))
-    self.pagination:DockMargin(0, 0, 0, ax.util:ScreenScaleH(6))
+    self.pagination:SetTall(ScreenScale(22))
+    self.pagination:DockMargin(0, 0, 0, ScreenScale(6))
     self.pagination.Paint = nil
 
-    self.pagePrev = self.pagination:Add("ax.button")
+    self.pagePrev = self.pagination:Add("DButton")
     self.pagePrev:Dock(LEFT)
-    self.pagePrev:SetWide(ax.util:ScreenScale(24))
+    self.pagePrev:SetWide(ScreenScale(24))
     self.pagePrev:SetText("<", true)
     self.pagePrev.DoClick = function()
         if ( self.page <= 1 ) then return end
@@ -194,9 +194,9 @@ function PANEL:BuildToolbar()
         self:RequestList()
     end
 
-    self.pageNext = self.pagination:Add("ax.button")
+    self.pageNext = self.pagination:Add("DButton")
     self.pageNext:Dock(RIGHT)
-    self.pageNext:SetWide(ax.util:ScreenScale(24))
+    self.pageNext:SetWide(ScreenScale(24))
     self.pageNext:SetText(">", true)
     self.pageNext.DoClick = function()
         if ( self.page >= self.pageCount ) then return end
@@ -204,9 +204,9 @@ function PANEL:BuildToolbar()
         self:RequestList()
     end
 
-    self.pageCounter = self.pagination:Add("ax.text")
+    self.pageCounter = self.pagination:Add("DLabel")
     self.pageCounter:Dock(FILL)
-    self.pageCounter:SetFont("ax.small")
+    self.pageCounter:SetFont("ixSmallFont")
     self.pageCounter:SetContentAlignment(5)
     self.pageCounter:SetText("Page 1 / 1", true)
 end
@@ -218,47 +218,43 @@ function PANEL:BuildMainPanels()
 
     self.listPanel = self.content:Add("EditablePanel")
     self.listPanel:Dock(LEFT)
-    self.listPanel:SetWide(ax.util:ScreenScale(220))
-    self.listPanel:DockMargin(0, 0, ax.util:ScreenScale(6), 0)
+    self.listPanel:SetWide(ScreenScale(220))
+    self.listPanel:DockMargin(0, 0, ScreenScale(6), 0)
     self.listPanel.Paint = function(this, width, height)
-        ax.theme:DrawGlassPanel(0, 0, width, height, {
-            radius = 8,
-            blur = 0.7,
-            flags = ax.render.SHAPE_IOS
+        ix.admin.theme:DrawGlassPanel(this, 0, 0, width, height, {
+            blur = 0.7
         })
     end
 
-    self.listTitle = self.listPanel:Add("ax.text")
+    self.listTitle = self.listPanel:Add("DLabel")
     self.listTitle:Dock(TOP)
-    self.listTitle:DockMargin(ax.util:ScreenScale(8), ax.util:ScreenScaleH(6), ax.util:ScreenScale(8), ax.util:ScreenScaleH(2))
-    self.listTitle:SetFont("ax.regular.bold")
+    self.listTitle:DockMargin(ScreenScale(8), ScreenScale(6), ScreenScale(8), ScreenScale(2))
+    self.listTitle:SetFont("ixMediumFont")
     self.listTitle:SetText("Players", true)
     self.listTitle:SetContentAlignment(4)
 
     self.listScroll = self.listPanel:Add("DScrollPanel")
     self.listScroll:Dock(FILL)
-    self.listScroll:DockMargin(ax.util:ScreenScale(6), 0, ax.util:ScreenScale(6), ax.util:ScreenScaleH(6))
+    self.listScroll:DockMargin(ScreenScale(6), 0, ScreenScale(6), ScreenScale(6))
     self.listScroll:GetVBar():SetWide(0)
 
     self.detailPanel = self.content:Add("EditablePanel")
     self.detailPanel:Dock(FILL)
     self.detailPanel.Paint = function(this, width, height)
-        ax.theme:DrawGlassPanel(0, 0, width, height, {
-            radius = 8,
-            blur = 0.7,
-            flags = ax.render.SHAPE_IOS
+        ix.admin.theme:DrawGlassPanel(this, 0, 0, width, height, {
+            blur = 0.7
         })
     end
 
     self.detailScroll = self.detailPanel:Add("DScrollPanel")
     self.detailScroll:Dock(FILL)
-    self.detailScroll:DockMargin(ax.util:ScreenScale(8), ax.util:ScreenScaleH(6), ax.util:ScreenScale(8), ax.util:ScreenScaleH(6))
+    self.detailScroll:DockMargin(ScreenScale(8), ScreenScale(6), ScreenScale(8), ScreenScale(6))
     self.detailScroll:GetVBar():SetWide(0)
 end
 
 function PANEL:PerformLayout(width, height)
-    local minWidth = ax.util:ScreenScale(180)
-    local maxWidth = math.max(minWidth, width - ax.util:ScreenScale(220))
+    local minWidth = ScreenScale(180)
+    local maxWidth = math.max(minWidth, width - ScreenScale(220))
     local wantedWidth = math.Clamp(math.floor(width * 0.46), minWidth, maxWidth)
 
     if ( IsValid(self.listPanel) ) then
@@ -315,7 +311,7 @@ function PANEL:RequestList()
     self:UpdateStatus()
     self:UpdatePagingState()
 
-    ax.net:Start("admin.activity.request_list", {
+    ix.net:Start("admin.activity.request_list", {
         nonce = self.listNonce,
         page = self.page,
         page_size = self.pageSize,
@@ -331,7 +327,7 @@ function PANEL:RequestDetail(steamID64)
     self.selectedDetail = nil
     self:RebuildDetail()
 
-    ax.net:Start("admin.activity.request_detail", {
+    ix.net:Start("admin.activity.request_detail", {
         nonce = self.detailNonce,
         steamid64 = steamID64,
         search = self.searchQuery
@@ -358,19 +354,17 @@ end
 function PANEL:RunAdminCommand(command, steamID64)
     if ( !isstring(command) or command == "" ) then return end
 
-    local cmd = "/" .. string.Trim(command)
-    if ( isstring(steamID64) and steamID64 != "" ) then
-        cmd = cmd .. " " .. steamID64
-    end
+    local steamID = steamID64 and util.SteamIDFrom64(steamID64) or nil
+    if ( !steamID ) then return end
 
-    ax.command:Send(cmd)
+    ix.command.Send(string.Trim(command), steamID)
 end
 
 function PANEL:AddSectionTitle(text)
-    local title = self.detailScroll:Add("ax.text")
+    local title = self.detailScroll:Add("DLabel")
     title:Dock(TOP)
-    title:DockMargin(0, ax.util:ScreenScaleH(4), 0, ax.util:ScreenScaleH(2))
-    title:SetFont("ax.regular.bold")
+    title:DockMargin(0, ScreenScale(4), 0, ScreenScale(2))
+    title:SetFont("ixMediumFont")
     title:SetText(text, true)
     title:SetContentAlignment(4)
 end
@@ -379,15 +373,15 @@ function PANEL:AddDetailRow(label, value)
     local row = self.detailScroll:Add("EditablePanel")
     row:Dock(TOP)
 
-    local left = row:Add("ax.text")
+    local left = row:Add("DLabel")
     left:Dock(LEFT)
-    left:SetFont("ax.small")
+    left:SetFont("ixSmallFont")
     left:SetText(label .. ":", true)
     left:SetContentAlignment(4)
 
-    local right = row:Add("ax.text")
+    local right = row:Add("DLabel")
     right:Dock(FILL)
-    right:SetFont("ax.small")
+    right:SetFont("ixSmallFont")
     right:SetText(tostring(value), true)
     right:SetContentAlignment(6)
 
@@ -395,14 +389,11 @@ function PANEL:AddDetailRow(label, value)
 end
 
 function PANEL:AddActionButton(text, callback, enabled)
-    local button = self.detailScroll:Add("ax.button")
+    local button = self.detailScroll:Add("DButton")
     button:Dock(TOP)
-    button:DockMargin(0, 0, 0, ax.util:ScreenScaleH(4))
-    button:SetTextInset(ax.util:ScreenScale(4), 0)
+    button:DockMargin(0, 0, 0, ScreenScale(4))
     button:SetText(text, true)
-    button:SetFont("ax.small")
-    button:SetFontDefault("ax.small")
-    button:SetFontHovered("ax.small")
+    button:SetFont("ixSmallFont")
     button:SetContentAlignment(4)
     button:SetEnabled(enabled != false)
     button.DoClick = function()
@@ -419,10 +410,10 @@ function PANEL:RebuildList()
     self.listScroll:Clear()
 
     if ( self.rows[1] == nil ) then
-        local noResults = self.listScroll:Add("ax.text")
+        local noResults = self.listScroll:Add("DLabel")
         noResults:Dock(TOP)
-        noResults:DockMargin(ax.util:ScreenScale(8), ax.util:ScreenScaleH(8), ax.util:ScreenScale(8), 0)
-        noResults:SetFont("ax.regular.italic")
+        noResults:DockMargin(ScreenScale(8), ScreenScale(8), ScreenScale(8), 0)
+        noResults:SetFont("ixMediumFont")
         noResults:SetText("No players to display.", true)
         noResults:SetContentAlignment(4)
         return
@@ -434,14 +425,14 @@ function PANEL:RebuildList()
 
         local row = self.listScroll:Add("EditablePanel")
         row:Dock(TOP)
-        row:SetTall(ax.util:ScreenScaleH(32))
-        row:DockMargin(0, 0, 0, ax.util:ScreenScaleH(4))
+        row:SetTall(ScreenScale(32))
+        row:DockMargin(0, 0, 0, ScreenScale(4))
         row:SetMouseInputEnabled(true)
         row:SetCursor("hand")
         row.data = rowData
 
         row.Paint = function(this, width, height)
-            local glass = ax.theme:GetGlass()
+            local glass = ix.admin.theme:GetGlass()
             local fill = glass.button
 
             if ( this.data and this.data.steamid64 == self.selectedSteamID64 ) then
@@ -450,11 +441,9 @@ function PANEL:RebuildList()
                 fill = glass.buttonHover
             end
 
-            ax.theme:DrawGlassPanel(0, 0, width, height, {
-                radius = 8,
+            ix.admin.theme:DrawGlassPanel(this, 0, 0, width, height, {
                 blur = 0.5,
-                fill = fill,
-                flags = ax.render.SHAPE_IOS
+                fill = fill
             })
         end
 
@@ -463,17 +452,17 @@ function PANEL:RebuildList()
             panel:SelectSummary(self.data)
         end
 
-        local title = row:Add("ax.text")
+        local title = row:Add("DLabel")
         title:Dock(TOP)
-        title:DockMargin(ax.util:ScreenScale(4), ax.util:ScreenScaleH(4), ax.util:ScreenScale(4), 0)
-        title:SetFont("ax.regular.bold")
+        title:DockMargin(ScreenScale(4), ScreenScale(4), ScreenScale(4), 0)
+        title:SetFont("ixMediumFont")
         title:SetText((rowData.name or "Unknown") .. "  (#" .. tostring(rowData.rank_global or "?") .. ")", true)
         title:SetContentAlignment(4)
 
-        local status = row:Add("ax.text")
+        local status = row:Add("DLabel")
         status:Dock(FILL)
-        status:DockMargin(ax.util:ScreenScale(4), 0, ax.util:ScreenScale(4), ax.util:ScreenScaleH(2))
-        status:SetFont("ax.small")
+        status:DockMargin(ScreenScale(4), 0, ScreenScale(4), ScreenScale(2))
+        status:SetFont("ixSmallFont")
 
         local state = rowData.is_online and "ONLINE" or "OFFLINE"
         local pingText = rowData.is_online and FormatPing(rowData.current_ping) or ("avg " .. FormatPing(rowData.average_ping))
@@ -488,10 +477,10 @@ function PANEL:RebuildDetail()
     self.detailScroll:Clear()
 
     if ( !self.selectedSteamID64 ) then
-        local info = self.detailScroll:Add("ax.text")
+        local info = self.detailScroll:Add("DLabel")
         info:Dock(TOP)
-        info:DockMargin(ax.util:ScreenScale(4), ax.util:ScreenScaleH(6), 0, 0)
-        info:SetFont("ax.regular.italic")
+        info:DockMargin(ScreenScale(4), ScreenScale(6), 0, 0)
+        info:SetFont("ixMediumFont")
         info:SetText("Select a player to view activity details.", true)
         info:SetContentAlignment(4)
         return
@@ -506,17 +495,17 @@ function PANEL:RebuildDetail()
     local steamID64 = detail.steamid64 or "Unknown"
     local online = HasOnlineActions(detail)
 
-    local header = self.detailScroll:Add("ax.text")
+    local header = self.detailScroll:Add("DLabel")
     header:Dock(TOP)
-    header:DockMargin(0, 0, 0, ax.util:ScreenScaleH(2))
-    header:SetFont("ax.regular.bold")
+    header:DockMargin(0, 0, 0, ScreenScale(2))
+    header:SetFont("ixMediumFont")
     header:SetText(name, true)
     header:SetContentAlignment(4)
 
-    local subHeader = self.detailScroll:Add("ax.text")
+    local subHeader = self.detailScroll:Add("DLabel")
     subHeader:Dock(TOP)
-    subHeader:DockMargin(0, 0, 0, ax.util:ScreenScaleH(4))
-    subHeader:SetFont("ax.small")
+    subHeader:DockMargin(0, 0, 0, ScreenScale(4))
+    subHeader:SetFont("ixSmallFont")
     subHeader:SetText(steamID64, true)
     subHeader:SetContentAlignment(4)
 
@@ -556,10 +545,10 @@ function PANEL:RebuildDetail()
     self:AddDetailRow("Average Rejoin Delay", detail.average_join_interval and FormatDuration(detail.average_join_interval) or "N/A")
 
     if ( self.requestingDetail and !istable(self.selectedDetail) ) then
-        local loading = self.detailScroll:Add("ax.text")
+        local loading = self.detailScroll:Add("DLabel")
         loading:Dock(TOP)
-        loading:DockMargin(0, ax.util:ScreenScaleH(6), 0, 0)
-        loading:SetFont("ax.small.italic")
+        loading:DockMargin(0, ScreenScale(6), 0, 0)
+        loading:SetFont("ixSmallFont")
         loading:SetText("Loading detailed metrics...", true)
         loading:SetContentAlignment(4)
     end
@@ -640,30 +629,30 @@ function PANEL:HandleErrorPayload(payload)
     end
     self:RebuildDetail()
 
-    if ( ax.util and ax.util.PrintError ) then
-        ax.util:PrintError("[admin.activity] " .. message)
+    if ( ix.util and ix.util.PrintError ) then
+        ix.util:PrintError("[admin.activity] " .. message)
     end
 end
 
 function PANEL:OnRemove()
-    if ( ax.gui.admin_activity == self ) then
-        ax.gui.admin_activity = nil
+    if ( ix.gui.admin_activity == self ) then
+        ix.gui.admin_activity = nil
     end
 end
 
-vgui.Register("ax.tab.admin.activity", PANEL, "EditablePanel")
+vgui.Register("ix.tab.admin.activity", PANEL, "EditablePanel")
 
-ax.net:Hook("admin.activity.list", function(payload)
-    if ( !IsValid(ax.gui.admin_activity) ) then return end
-    ax.gui.admin_activity:HandleListPayload(payload)
+ix.net:Hook("admin.activity.list", function(payload)
+    if ( !IsValid(ix.gui.admin_activity) ) then return end
+    ix.gui.admin_activity:HandleListPayload(payload)
 end)
 
-ax.net:Hook("admin.activity.detail", function(payload)
-    if ( !IsValid(ax.gui.admin_activity) ) then return end
-    ax.gui.admin_activity:HandleDetailPayload(payload)
+ix.net:Hook("admin.activity.detail", function(payload)
+    if ( !IsValid(ix.gui.admin_activity) ) then return end
+    ix.gui.admin_activity:HandleDetailPayload(payload)
 end)
 
-ax.net:Hook("admin.activity.error", function(payload)
-    if ( !IsValid(ax.gui.admin_activity) ) then return end
-    ax.gui.admin_activity:HandleErrorPayload(payload)
+ix.net:Hook("admin.activity.error", function(payload)
+    if ( !IsValid(ix.gui.admin_activity) ) then return end
+    ix.gui.admin_activity:HandleErrorPayload(payload)
 end)

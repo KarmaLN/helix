@@ -48,6 +48,19 @@ local function SendError(client, message, nonce)
     })
 end
 
+local function SearchMatches(search, ...)
+    local normalizedSearch = string.lower(search)
+
+    for i = 1, select("#", ...) do
+        local value = string.lower(tostring(select(i, ...) or ""))
+        if ( string.find(value, normalizedSearch, 1, true) ) then
+            return true
+        end
+    end
+
+    return false
+end
+
 local function SendActionResult(client, ok, message, nonce, banData)
     ix.net:Start(client, "admin.bans.action_result", {
         ok = ok == true,
@@ -118,7 +131,7 @@ end
 local function RowMatchesSearch(row, search)
     if ( search == "" ) then return true end
 
-    return ix.util:SearchMatches(search,
+    return SearchMatches(search,
         row.id,
         row.name,
         row.steamid64,
@@ -166,6 +179,7 @@ end
 
 local function BuildListRowPayload(row)
     local status = BuildStatus(row)
+    local onlineClient = player.GetBySteamID64(row.steamid64)
 
     return {
         id = tonumber(row.id) or 0,
@@ -181,7 +195,7 @@ local function BuildListRowPayload(row)
         status = status,
         status_text = string.upper(status),
         is_active = PLUGIN:IsBanActive(row),
-        is_online = player.GetBySteamID64(row.steamid64) != false and ix.util.IsValidPlayer(player.GetBySteamID64(row.steamid64))
+        is_online = ix.util.IsValidPlayer(onlineClient)
     }
 end
 

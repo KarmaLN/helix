@@ -26,6 +26,23 @@ local function NormalizeID(uniqueID)
     return string.lower(uniqueID)
 end
 
+local function UniqueIDToName(uniqueID)
+    uniqueID = string.gsub(uniqueID, "[-_]+", " ")
+    uniqueID = string.gsub(uniqueID, "(%a)([%w']*)", function(first, rest)
+        return string.upper(first) .. rest
+    end)
+
+    return uniqueID
+end
+
+local function IsSteamID64(identifier)
+    return isstring(identifier) and #identifier == 17 and string.match(identifier, "^%d+$") != nil
+end
+
+local function IsSteamID(identifier)
+    return isstring(identifier) and string.match(identifier, "^STEAM_%d:%d:%d+$") != nil
+end
+
 local function GetSteamIDFrom64(steamID64)
     if ( !isstring(steamID64) or steamID64 == "" or !isfunction(util.SteamIDFrom64) ) then
         return steamID64
@@ -45,7 +62,7 @@ local function NotifyCallback(callback, ok, result, err)
     end
 end
 
---- Registers a Parallax usergroup and mirrors it to CAMI when available.
+--- Registers an admin usergroup and mirrors it to CAMI when available.
 ---@realm shared
 ---@param uniqueID string Stable lower-case usergroup identifier
 ---@param data table Usergroup metadata
@@ -59,7 +76,7 @@ function PLUGIN:RegisterUsergroup(uniqueID, data)
     local existing = self.usergroups[uniqueID]
     local usergroup = existing or {}
     usergroup.uniqueID = uniqueID
-    usergroup.name = isstring(data.name) and data.name != "" and data.name or ix.util:UniqueIDToName(uniqueID)
+    usergroup.name = isstring(data.name) and data.name != "" and data.name or UniqueIDToName(uniqueID)
     usergroup.description = isstring(data.description) and data.description or ""
     usergroup.level = math.floor(tonumber(data.level) or tonumber(usergroup.level) or 0)
     usergroup.immunity = math.floor(tonumber(data.immunity) or tonumber(data.level) or tonumber(usergroup.immunity) or usergroup.level)
@@ -242,13 +259,13 @@ function PLUGIN:NormalizeSteamID64(identifier)
     identifier = string.Trim(tostring(identifier or ""))
     if ( identifier == "" ) then return nil end
 
-    if ( ix.type:Sanitise(ix.type.steamid64, identifier) ) then
+    if ( IsSteamID64(identifier) ) then
         return identifier
     end
 
-    if ( ix.type:Sanitise(ix.type.steamid, identifier) and isfunction(util.SteamIDTo64) ) then
+    if ( IsSteamID(identifier) and isfunction(util.SteamIDTo64) ) then
         local steamID64 = util.SteamIDTo64(identifier)
-        if ( ix.type:Sanitise(ix.type.steamid64, steamID64) ) then
+        if ( IsSteamID64(steamID64) ) then
             return steamID64
         end
     end
@@ -256,7 +273,7 @@ function PLUGIN:NormalizeSteamID64(identifier)
     return nil
 end
 
---- Returns the best known Parallax usergroup for a player.
+--- Returns the best known admin usergroup for a player.
 ---@realm shared
 ---@param client Player Target player
 ---@return string usergroup Usergroup identifier
@@ -456,20 +473,14 @@ function PLUGIN:SetPlayerUsergroup(actor, target, usergroup, callback)
         return false, already
     end
 
-    if ( isfunction(target.SetUsergroup) ) then
-        target:SetUsergroup(normalizedID, {
-            bNoDBUpdate = true,
-        })
-    else
-        ix.player:SetVar(target, "usergroup", normalizedID, {
-            bNoDBUpdate = true,
-        })
-    end
+    target:SetUsergroup(normalizedID, {
+        bNoDBUpdate = true,
+    })
 
     self:SyncPlayerUsergroup(target, normalizedID)
 
-    if ( isfunction(target.Save) ) then
-        target:Save()
+    if ( isfunction(target.SaveData) ) then
+        target:SaveData()
     end
 
     if ( istable(CAMI) and isfunction(CAMI.SignalUserGroupChanged) ) then
@@ -522,10 +533,12 @@ function PLUGIN:SetSteamIDUsergroup(actor, identifier, usergroup, callback)
         return false, "You cannot manage your own offline usergroup."
     end
 
-    local query = mysqloo:Select("ax_players")
-        query:Where("steamid64", steamID64)
-        query:Callback(function(result)
-            if ( result == false ) then
+    local query = mysql:Select("ix_players")
+        query:Select("steamid")
+        query:Select("data")
+        query:Where("steamid", steamID64)
+        query:Callback(function(result, status)
+            if ( status == false or result == false ) then
                 NotifyCallback(callback, false, nil, "Failed to query player data.")
                 return
             end
@@ -536,7 +549,9 @@ function PLUGIN:SetSteamIDUsergroup(actor, identifier, usergroup, callback)
                 return
             end
 
-            local oldGroup = self:NormalizeUsergroup(row.usergroup) or "user"
+            local playerData = isstring(row.data) and util.JSONToTable(row.data) or nil
+            playerData = istable(playerData) and playerData or {}
+            local oldGroup = self:NormalizeUsergroup(playerData.admin_usergroup) or "user"
 
             if ( ix.util.IsValidPlayer(actor) ) then
                 if ( self:GetPlayerUsergroupImmunity(actor) <= self:GetUsergroupImmunity(oldGroup) ) then
@@ -555,11 +570,12 @@ function PLUGIN:SetSteamIDUsergroup(actor, identifier, usergroup, callback)
                 return
             end
 
-            local update = mysqloo:Update("ix_players")
-                update:Where("steamid64", steamID64)
-                update:Update("usergroup", normalizedID)
-                update:Callback(function(updateResult, status)
-                    if ( status == false or updateResult == false ) then
+            playerData.admin_usergroup = normalizedID
+            local update = mysql:Update("ix_players")
+                update:Update("data", util.TableToJSON(playerData))
+                update:Where("steamid", steamID64)
+                update:Callback(function(updateResult, updateStatus)
+                    if ( updateStatus == false or updateResult == false ) then
                         NotifyCallback(callback, false, nil, "Failed to update player usergroup.")
                         return
                     end
@@ -650,7 +666,7 @@ if ( SERVER ) then
             return
         end
 
-        local target = ix.util:FindPlayer(arguments[1])
+        local target = ix.util.FindPlayer(arguments[1])
         if ( !ix.util.IsValidPlayer(target) ) then
             local message = "You must specify a valid online player. Use /PlySetUsergroupID for offline changes."
             if ( ix.util.IsValidPlayer(client) ) then

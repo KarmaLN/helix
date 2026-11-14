@@ -11,6 +11,26 @@
 
 local PLUGIN = PLUGIN or {}
 
+local function AddCommand(name, command)
+    if ( istable(command.arguments) ) then
+        local argumentNames = {}
+        local argumentTypes = {}
+
+        for i = 1, #command.arguments do
+            local argument = command.arguments[i]
+            argumentNames[i] = argument.name
+            argumentTypes[i] = argument.optional and bit.bor(argument.type, ix.type.optional) or argument.type
+        end
+
+        command.arguments = argumentTypes
+        command.argumentNames = argumentNames
+    end
+
+    command.OnCheckAccess = command.OnCheckAccess or command.CanRun
+    command.CanRun = nil
+    ix.command.Add(name, command)
+end
+
 if ( !isfunction(PLUGIN.CanAccessBanPrivilege) ) then
     function PLUGIN:CanAccessBanPrivilege(client)
         if ( !ix.util.IsValidPlayer(client) ) then
@@ -49,7 +69,7 @@ local function CanUsePrivilege(client, privilege)
     return PLUGIN:CanAccessBanPrivilege(client, privilege)
 end
 
-ix.command.Add("PlyBan", {
+AddCommand("PlyBan", {
     description = "Ban a player from the server (minutes; 0 = permanent)",
     adminOnly = true,
     arguments = {
@@ -82,7 +102,7 @@ ix.command.Add("PlyBan", {
     end
 })
 
-ix.command.Add("PlyBanID", {
+AddCommand("PlyBanID", {
     description = "Ban an offline player by SteamID64 or SteamID (minutes; 0 = permanent)",
     adminOnly = true,
     arguments = {
@@ -116,7 +136,7 @@ ix.command.Add("PlyBanID", {
     end
 })
 
-ix.command.Add("PlyUnban", {
+AddCommand("PlyUnban", {
     description = "Revoke an active ban by SteamID64 or SteamID",
     adminOnly = true,
     arguments = {
@@ -138,7 +158,7 @@ ix.command.Add("PlyUnban", {
     end
 })
 
-ix.command.Add("PlyBanModify", {
+AddCommand("PlyBanModify", {
     description = "Modify an active ban duration/reason (minutes; 0 = permanent)",
     adminOnly = true,
     arguments = {
@@ -162,7 +182,7 @@ ix.command.Add("PlyBanModify", {
     end
 })
 
-ix.command.Add("PlyBanInfo", {
+AddCommand("PlyBanInfo", {
     description = "View detailed information about a ban",
     adminOnly = true,
     arguments = {
@@ -187,7 +207,7 @@ ix.command.Add("PlyBanInfo", {
     end
 })
 
-ix.command.Add("PlyBanHistory", {
+AddCommand("PlyBanHistory", {
     description = "View previous bans for a SteamID64 or SteamID",
     adminOnly = true,
     arguments = {

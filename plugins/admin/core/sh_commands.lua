@@ -11,6 +11,26 @@
 
 local savedPositions = savedPositions or {}
 
+local function AddCommand(name, command)
+    if ( istable(command.arguments) ) then
+        local argumentNames = {}
+        local argumentTypes = {}
+
+        for i = 1, #command.arguments do
+            local argument = command.arguments[i]
+            argumentNames[i] = argument.name
+            argumentTypes[i] = argument.optional and bit.bor(argument.type, ix.type.optional) or argument.type
+        end
+
+        command.arguments = argumentTypes
+        command.argumentNames = argumentNames
+    end
+
+    command.OnCheckAccess = command.OnCheckAccess or command.CanRun
+    command.CanRun = nil
+    ix.command.Add(name, command)
+end
+
 local function getIdentifier(player)
     return ix.util.IsValidPlayer(player) and player:SteamID64() or nil
 end
@@ -109,7 +129,7 @@ local function printCallerLine(client, message)
     ix.util:Print(message)
 end
 
-ix.command:Add("PlySetUsergroup", {
+AddCommand("PlySetUsergroup", {
     description = "Set an online player's usergroup",
     adminOnly = true,
     arguments = {
@@ -133,7 +153,7 @@ ix.command:Add("PlySetUsergroup", {
     end
 })
 
-ix.command:Add("PlySetUsergroupID", {
+AddCommand("PlySetUsergroupID", {
     description = "Set an offline player's usergroup by SteamID64 or SteamID",
     adminOnly = true,
     arguments = {
@@ -155,7 +175,7 @@ ix.command:Add("PlySetUsergroupID", {
     end
 })
 
-ix.command:Add("PlyGetUsergroup", {
+AddCommand("PlyGetUsergroup", {
     description = "View a player's current usergroup",
     adminOnly = true,
     arguments = {
@@ -173,7 +193,7 @@ ix.command:Add("PlyGetUsergroup", {
     end
 })
 
-ix.command:Add("UsergroupList", {
+AddCommand("UsergroupList", {
     description = "List registered usergroups",
     adminOnly = true,
     CanRun = function(def, client)
@@ -192,7 +212,7 @@ ix.command:Add("UsergroupList", {
     end
 })
 
-ix.command:Add("UsergroupInfo", {
+AddCommand("UsergroupInfo", {
     description = "View details for a registered usergroup",
     adminOnly = true,
     arguments = {
@@ -216,7 +236,7 @@ ix.command:Add("UsergroupInfo", {
     end
 })
 
-ix.command:Add("PlyGoto", {
+AddCommand("PlyGoto", {
     description = "Teleport yourself to a player",
     adminOnly = true,
     arguments = {
@@ -234,7 +254,7 @@ ix.command:Add("PlyGoto", {
     end
 })
 
-ix.command:Add("PlyBring", {
+AddCommand("PlyBring", {
     description = "Bring a player to you",
     adminOnly = true,
     arguments = {
@@ -252,7 +272,7 @@ ix.command:Add("PlyBring", {
     end
 })
 
-ix.command:Add("PlyTeleport", {
+AddCommand("PlyTeleport", {
     description = "Teleport to where you're looking",
     adminOnly = true,
     OnRun = function(def, client)
@@ -269,7 +289,7 @@ ix.command:Add("PlyTeleport", {
     end
 })
 
-ix.command:Add("PlyReturn", {
+AddCommand("PlyReturn", {
     description = "Return a player to their previous position",
     adminOnly = true,
     arguments = {
@@ -287,7 +307,7 @@ ix.command:Add("PlyReturn", {
     end
 })
 
-ix.command:Add("PlySetHealth", {
+AddCommand("PlySetHealth", {
     description = "Set a player's health",
     adminOnly = true,
     arguments = {
@@ -306,7 +326,7 @@ ix.command:Add("PlySetHealth", {
     end
 })
 
-ix.command:Add("CharSetBodygroup", {
+AddCommand("CharSetBodygroup", {
 	description = "@cmdCharSetBodygroup",
 	adminOnly = true,
 	arguments = {
@@ -322,7 +342,7 @@ ix.command:Add("CharSetBodygroup", {
 				value = nil
 			end
 
-			target:GetCharacter():SetBodygroup(index, value)
+			target:SetBodygroup(index, value or 0)
 
 		else
 			return "@invalidArg", 2
@@ -330,7 +350,7 @@ ix.command:Add("CharSetBodygroup", {
 	end
 })
 
-ix.command:Add("PlySetArmor", {
+AddCommand("PlySetArmor", {
     description = "Set a player's armor",
     adminOnly = true,
     arguments = {
@@ -349,7 +369,7 @@ ix.command:Add("PlySetArmor", {
     end
 })
 
-ix.command:Add("PlyGiveAmmo", {
+AddCommand("PlyGiveAmmo", {
     description = "Give ammo to a player",
     adminOnly = true,
     arguments = {
@@ -380,7 +400,7 @@ ix.command:Add("PlyGiveAmmo", {
     end
 })
 
-ix.command:Add("PlyFreeze", {
+AddCommand("PlyFreeze", {
     description = "Freeze or unfreeze a player",
     adminOnly = true,
     arguments = {
@@ -398,7 +418,7 @@ ix.command:Add("PlyFreeze", {
     end
 })
 
-ix.command:Add("PlyRespawn", {
+AddCommand("PlyRespawn", {
     description = "Respawn a player",
     adminOnly = true,
     arguments = {
@@ -410,7 +430,7 @@ ix.command:Add("PlyRespawn", {
     end
 })
 
-ix.command:Add("PlySlay", {
+AddCommand("PlySlay", {
     description = "Kill a player",
     adminOnly = true,
     arguments = {
@@ -423,7 +443,7 @@ ix.command:Add("PlySlay", {
     end
 })
 
-ix.command:Add("PlyExit", {
+AddCommand("PlyExit", {
     description = "Force a player to exit their vehicle or chair",
     adminOnly = true,
     arguments = {
@@ -441,7 +461,7 @@ ix.command:Add("PlyExit", {
     end
 })
 
-ix.command:Add("PlyKick", {
+AddCommand("PlyKick", {
     description = "Kick a player from the server",
     adminOnly = true,
     arguments = {
@@ -454,7 +474,7 @@ ix.command:Add("PlyKick", {
         end
 
         if ( !isstring(reason) or reason == "" ) then
-            reason = "Kicked by " .. client:Nick()
+            reason = "Kicked by " .. (ix.util.IsValidPlayer(client) and client:Nick() or "Console")
         end
 
         local targetName = target:Nick()
@@ -464,7 +484,7 @@ ix.command:Add("PlyKick", {
     end
 })
 
-ix.command:Add("Map", {
+AddCommand("Map", {
     description = "Change the map",
     adminOnly = true,
     arguments = {
@@ -505,7 +525,7 @@ ix.command:Add("Map", {
     end
 })
 
-ix.command:Add("StopSounds", {
+AddCommand("StopSounds", {
     description = "Immediately stops all sounds.",
     adminOnly = true,
     OnRun = function(self, client)
@@ -515,15 +535,15 @@ ix.command:Add("StopSounds", {
     end
 })
 
-ix.chat:Add("admin", {
+ix.chat.Add("admin", {
     displayName = "Radio",
     description = "Talk in Radio",
     prefix = {"@", "/admin"},
 
     OnRun = function(this, client, message)
         local formattedMessage = ix.chat:FormatWithMarkdown(message, "ix.small")
-		local usergroupTable = ix.admin:GetUsergroup(client:GetUserGroup())
-        return usergroupTable.color, "[Staff Chat] " .. usergroupTable.name .. " | " .. client:SteamName(), ": ", formattedMessage
+		local usergroupTable = ix.admin:GetUsergroup(ix.admin:GetPlayerUsergroup(client))
+        return (usergroupTable and usergroupTable.color) or color_white, "[Staff Chat] " .. ((usergroupTable and usergroupTable.name) or "Staff") .. " | " .. client:SteamName(), ": ", formattedMessage
     end,
 
     CanSay = function(this, speaker, text)
@@ -535,7 +555,7 @@ ix.chat:Add("admin", {
     end
 })
 
-ix.command:Add("CharForceSearch", {
+AddCommand("CharForceSearch", {
     description = "Search a player's inventory.",
     adminOnly = true,
     arguments = {

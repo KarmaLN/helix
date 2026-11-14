@@ -122,7 +122,7 @@ local function NotifyClient(message, notificationType)
     message = tostring(message or "")
     if ( message == "" ) then return end
 
-    local client = ix.client
+    local client = LocalPlayer()
     if ( ix.util.IsValidPlayer(client) ) then
         client:Notify(message, notificationType)
         return
@@ -194,6 +194,9 @@ function PANEL:Init()
     self.pendingSearch = false
     self.pendingSearchAt = 0
     self.ignoreSearchCallback = false
+    self.canCreateBan = ix.admin:CanAccessPrivilege(LocalPlayer(), "Helix - Ban Offline Players")
+    self.canModifyBans = ix.admin:CanAccessPrivilege(LocalPlayer(), "Helix - Modify Bans")
+    self.canRevokeBans = ix.admin:CanAccessPrivilege(LocalPlayer(), "Helix - Unban Players")
 
     self:BuildToolbar()
     self:BuildMainPanels()
@@ -207,41 +210,42 @@ end
 function PANEL:BuildToolbar()
     self.toolbar = self:Add("EditablePanel")
     self.toolbar:Dock(TOP)
-    self.toolbar:SetTall(ax.util:ScreenScaleH(22))
-    self.toolbar:DockMargin(0, 0, 0, ax.util:ScreenScaleH(4))
+    self.toolbar:SetTall(ScreenScale(22))
+    self.toolbar:DockMargin(0, 0, 0, ScreenScale(4))
     self.toolbar.Paint = nil
 
-    self.statusLabel = self.toolbar:Add("ax.text")
+    self.statusLabel = self.toolbar:Add("DLabel")
     self.statusLabel:Dock(FILL)
-    self.statusLabel:SetFont("ax.small")
+    self.statusLabel:SetFont("ixSmallFont")
     self.statusLabel:SetText("Loading ban records...", true)
     self.statusLabel:SetContentAlignment(4)
 
     self.controls = self:Add("EditablePanel")
     self.controls:Dock(TOP)
-    self.controls:SetTall(ax.util:ScreenScaleH(26))
-    self.controls:DockMargin(0, 0, 0, ax.util:ScreenScaleH(4))
+    self.controls:SetTall(ScreenScale(26))
+    self.controls:DockMargin(0, 0, 0, ScreenScale(4))
     self.controls.Paint = nil
 
-    self.createButton = self.controls:Add("ax.button")
+    self.createButton = self.controls:Add("DButton")
     self.createButton:Dock(RIGHT)
-    self.createButton:DockMargin(ax.util:ScreenScale(4), 0, 0, 0)
-    self.createButton:SetWide(ax.util:ScreenScale(88))
+    self.createButton:DockMargin(ScreenScale(4), 0, 0, 0)
+    self.createButton:SetWide(ScreenScale(88))
     self.createButton:SetText("Create Ban", true)
+    self.createButton:SetEnabled(self.canCreateBan)
     self.createButton.DoClick = function()
         self:PromptCreateBan()
     end
 
-    self.refreshButton = self.controls:Add("ax.button")
+    self.refreshButton = self.controls:Add("DButton")
     self.refreshButton:Dock(RIGHT)
-    self.refreshButton:DockMargin(ax.util:ScreenScale(4), 0, 0, 0)
-    self.refreshButton:SetWide(ax.util:ScreenScale(56))
+    self.refreshButton:DockMargin(ScreenScale(4), 0, 0, 0)
+    self.refreshButton:SetWide(ScreenScale(56))
     self.refreshButton:SetText("Refresh", true)
     self.refreshButton.DoClick = function()
         self:RequestList()
     end
 
-    self.searchEntry = self.controls:Add("ax.text.entry")
+    self.searchEntry = self.controls:Add("DTextEntry")
     self.searchEntry:Dock(FILL)
     self.searchEntry:SetPlaceholderText("Search by ID, player, SteamID, admin, or reason...")
     self.searchEntry.OnValueChange = function(entry, value)
@@ -265,8 +269,8 @@ function PANEL:BuildToolbar()
 
     self.filterBar = self:Add("EditablePanel")
     self.filterBar:Dock(TOP)
-    self.filterBar:SetTall(ax.util:ScreenScaleH(22))
-    self.filterBar:DockMargin(0, 0, 0, ax.util:ScreenScaleH(4))
+    self.filterBar:SetTall(ScreenScale(22))
+    self.filterBar:DockMargin(0, 0, 0, ScreenScale(4))
     self.filterBar.Paint = nil
 
     self.filterButtons = {}
@@ -274,9 +278,9 @@ function PANEL:BuildToolbar()
     for i = 1, #FILTERS do
         local filterData = FILTERS[i]
 
-        local button = self.filterBar:Add("ax.button")
+        local button = self.filterBar:Add("DButton")
         button:Dock(LEFT)
-        button:DockMargin(0, 0, ax.util:ScreenScale(4), 0)
+        button:DockMargin(0, 0, ScreenScale(4), 0)
         button:SetText(filterData.label, true)
         button.bActive = false
         button.filterID = filterData.id
@@ -284,10 +288,10 @@ function PANEL:BuildToolbar()
         button.PaintAdditional = function(this, width, height)
             if ( !this.bActive ) then return end
 
-            local glass = ax.theme:GetGlass()
-            local metrics = ax.theme:GetMetrics()
-            local barHeight = math.max(2, ax.util:ScreenScaleH(2))
-            surface.SetDrawColor(ax.theme:ScaleAlpha(glass.progress, metrics.opacity))
+            local glass = ix.admin.theme:GetGlass()
+            local metrics = ix.admin.theme:GetMetrics()
+            local barHeight = math.max(2, ScreenScale(2))
+            surface.SetDrawColor(ix.admin.theme:ScaleAlpha(glass.progress, metrics.opacity))
             surface.DrawRect(0, height - barHeight, width, barHeight)
         end
 
@@ -305,15 +309,15 @@ function PANEL:BuildToolbar()
 
     self.statsPanel = self:Add("EditablePanel")
     self.statsPanel:Dock(TOP)
-    self.statsPanel:SetTall(ax.util:ScreenScaleH(20))
-    self.statsPanel:DockMargin(0, 0, 0, ax.util:ScreenScaleH(4))
+    self.statsPanel:SetTall(ScreenScale(20))
+    self.statsPanel:DockMargin(0, 0, 0, ScreenScale(4))
     self.statsPanel.Paint = nil
 
     local function AddStatLabel()
-        local label = self.statsPanel:Add("ax.text")
+        local label = self.statsPanel:Add("DLabel")
         label:Dock(LEFT)
-        label:DockMargin(0, 0, ax.util:ScreenScale(8), 0)
-        label:SetFont("ax.small")
+        label:DockMargin(0, 0, ScreenScale(8), 0)
+        label:SetFont("ixSmallFont")
         label:SetText("", true)
         label:SetContentAlignment(4)
 
@@ -328,13 +332,13 @@ function PANEL:BuildToolbar()
 
     self.pagination = self:Add("EditablePanel")
     self.pagination:Dock(TOP)
-    self.pagination:SetTall(ax.util:ScreenScaleH(22))
-    self.pagination:DockMargin(0, 0, 0, ax.util:ScreenScaleH(6))
+    self.pagination:SetTall(ScreenScale(22))
+    self.pagination:DockMargin(0, 0, 0, ScreenScale(6))
     self.pagination.Paint = nil
 
-    self.pagePrev = self.pagination:Add("ax.button")
+    self.pagePrev = self.pagination:Add("DButton")
     self.pagePrev:Dock(LEFT)
-    self.pagePrev:SetWide(ax.util:ScreenScale(24))
+    self.pagePrev:SetWide(ScreenScale(24))
     self.pagePrev:SetText("<", true)
     self.pagePrev.DoClick = function()
         if ( self.page <= 1 ) then return end
@@ -343,9 +347,9 @@ function PANEL:BuildToolbar()
         self:RequestList()
     end
 
-    self.pageNext = self.pagination:Add("ax.button")
+    self.pageNext = self.pagination:Add("DButton")
     self.pageNext:Dock(RIGHT)
-    self.pageNext:SetWide(ax.util:ScreenScale(24))
+    self.pageNext:SetWide(ScreenScale(24))
     self.pageNext:SetText(">", true)
     self.pageNext.DoClick = function()
         if ( self.page >= self.pageCount ) then return end
@@ -354,9 +358,9 @@ function PANEL:BuildToolbar()
         self:RequestList()
     end
 
-    self.pageCounter = self.pagination:Add("ax.text")
+    self.pageCounter = self.pagination:Add("DLabel")
     self.pageCounter:Dock(FILL)
-    self.pageCounter:SetFont("ax.small")
+    self.pageCounter:SetFont("ixSmallFont")
     self.pageCounter:SetContentAlignment(5)
     self.pageCounter:SetText("Page 1 / 1", true)
 end
@@ -368,47 +372,43 @@ function PANEL:BuildMainPanels()
 
     self.listPanel = self.content:Add("EditablePanel")
     self.listPanel:Dock(LEFT)
-    self.listPanel:SetWide(ax.util:ScreenScale(260))
-    self.listPanel:DockMargin(0, 0, ax.util:ScreenScale(6), 0)
+    self.listPanel:SetWide(ScreenScale(260))
+    self.listPanel:DockMargin(0, 0, ScreenScale(6), 0)
     self.listPanel.Paint = function(this, width, height)
-        ax.theme:DrawGlassPanel(0, 0, width, height, {
-            radius = 8,
-            blur = 0.7,
-            flags = ax.render.SHAPE_IOS
+        ix.admin.theme:DrawGlassPanel(this, 0, 0, width, height, {
+            blur = 0.7
         })
     end
 
-    self.listTitle = self.listPanel:Add("ax.text")
+    self.listTitle = self.listPanel:Add("DLabel")
     self.listTitle:Dock(TOP)
-    self.listTitle:DockMargin(ax.util:ScreenScale(8), ax.util:ScreenScaleH(6), ax.util:ScreenScale(8), ax.util:ScreenScaleH(2))
-    self.listTitle:SetFont("ax.regular.bold")
+    self.listTitle:DockMargin(ScreenScale(8), ScreenScale(6), ScreenScale(8), ScreenScale(2))
+    self.listTitle:SetFont("ixMediumFont")
     self.listTitle:SetText("Ban Records", true)
     self.listTitle:SetContentAlignment(4)
 
     self.listScroll = self.listPanel:Add("DScrollPanel")
     self.listScroll:Dock(FILL)
-    self.listScroll:DockMargin(ax.util:ScreenScale(6), 0, ax.util:ScreenScale(6), ax.util:ScreenScaleH(6))
+    self.listScroll:DockMargin(ScreenScale(6), 0, ScreenScale(6), ScreenScale(6))
     self.listScroll:GetVBar():SetWide(0)
 
     self.detailPanel = self.content:Add("EditablePanel")
     self.detailPanel:Dock(FILL)
     self.detailPanel.Paint = function(this, width, height)
-        ax.theme:DrawGlassPanel(0, 0, width, height, {
-            radius = 8,
-            blur = 0.7,
-            flags = ax.render.SHAPE_IOS
+        ix.admin.theme:DrawGlassPanel(this, 0, 0, width, height, {
+            blur = 0.7
         })
     end
 
     self.detailScroll = self.detailPanel:Add("DScrollPanel")
     self.detailScroll:Dock(FILL)
-    self.detailScroll:DockMargin(ax.util:ScreenScale(8), ax.util:ScreenScaleH(6), ax.util:ScreenScale(8), ax.util:ScreenScaleH(6))
+    self.detailScroll:DockMargin(ScreenScale(8), ScreenScale(6), ScreenScale(8), ScreenScale(6))
     self.detailScroll:GetVBar():SetWide(0)
 end
 
 function PANEL:PerformLayout(width)
-    local minWidth = ax.util:ScreenScale(220)
-    local maxWidth = math.max(minWidth, width - ax.util:ScreenScale(240))
+    local minWidth = ScreenScale(220)
+    local maxWidth = math.max(minWidth, width - ScreenScale(240))
     local wantedWidth = math.Clamp(math.floor(width * 0.48), minWidth, maxWidth)
 
     if ( IsValid(self.listPanel) ) then
@@ -499,7 +499,7 @@ function PANEL:RequestList()
     self:UpdateStatus()
     self:UpdatePagingState()
 
-    ax.net:Start("admin.bans.request_list", {
+    ix.net:Start("admin.bans.request_list", {
         nonce = self.listNonce,
         page = self.page,
         page_size = self.pageSize,
@@ -521,7 +521,7 @@ function PANEL:RequestDetail(banID)
 
     self:RebuildDetail()
 
-    ax.net:Start("admin.bans.request_detail", {
+    ix.net:Start("admin.bans.request_detail", {
         nonce = self.detailNonce,
         id = banID
     })
@@ -566,7 +566,7 @@ function PANEL:SendActionRequest(netName, payload)
     payload = istable(payload) and table.Copy(payload) or {}
     payload.nonce = self.actionNonce
 
-    ax.net:Start(netName, payload)
+    ix.net:Start(netName, payload)
 end
 
 function PANEL:PromptCreateBan()
@@ -672,10 +672,10 @@ function PANEL:PromptRevokeBan()
 end
 
 function PANEL:AddSectionTitle(text)
-    local title = self.detailScroll:Add("ax.text")
+    local title = self.detailScroll:Add("DLabel")
     title:Dock(TOP)
-    title:DockMargin(0, ax.util:ScreenScaleH(4), 0, ax.util:ScreenScaleH(2))
-    title:SetFont("ax.regular.bold")
+    title:DockMargin(0, ScreenScale(4), 0, ScreenScale(2))
+    title:SetFont("ixMediumFont")
     title:SetText(tostring(text or ""), true)
     title:SetContentAlignment(4)
 end
@@ -684,16 +684,16 @@ function PANEL:AddDetailRow(label, value)
     local row = self.detailScroll:Add("EditablePanel")
     row:Dock(TOP)
 
-    local left = row:Add("ax.text")
+    local left = row:Add("DLabel")
     left:Dock(LEFT)
-    left:SetWide(ax.util:ScreenScale(112))
-    left:SetFont("ax.small")
+    left:SetWide(ScreenScale(112))
+    left:SetFont("ixSmallFont")
     left:SetText(tostring(label or "") .. ":", true)
     left:SetContentAlignment(4)
 
-    local right = row:Add("ax.text")
+    local right = row:Add("DLabel")
     right:Dock(FILL)
-    right:SetFont("ax.small")
+    right:SetFont("ixSmallFont")
     right:SetText(tostring(value or ""), true)
     right:SetContentAlignment(6)
 
@@ -701,14 +701,11 @@ function PANEL:AddDetailRow(label, value)
 end
 
 function PANEL:AddActionButton(text, callback, enabled)
-    local button = self.detailScroll:Add("ax.button")
+    local button = self.detailScroll:Add("DButton")
     button:Dock(TOP)
-    button:DockMargin(0, 0, 0, ax.util:ScreenScaleH(4))
-    button:SetTextInset(ax.util:ScreenScale(4), 0)
+    button:DockMargin(0, 0, 0, ScreenScale(4))
     button:SetText(tostring(text or ""), true)
-    button:SetFont("ax.small")
-    button:SetFontDefault("ax.small")
-    button:SetFontHovered("ax.small")
+    button:SetFont("ixSmallFont")
     button:SetContentAlignment(4)
     button:SetEnabled(enabled != false)
     button.DoClick = function()
@@ -723,19 +720,19 @@ end
 function PANEL:AddReasonBlock(titleText, reasonText)
     local block = self.detailScroll:Add("EditablePanel")
     block:Dock(TOP)
-    block:DockMargin(0, 0, 0, ax.util:ScreenScaleH(4))
+    block:DockMargin(0, 0, 0, ScreenScale(4))
     block.Paint = nil
 
-    local title = block:Add("ax.text")
+    local title = block:Add("DLabel")
     title:Dock(TOP)
-    title:SetFont("ax.small")
+    title:SetFont("ixSmallFont")
     title:SetText(tostring(titleText or "Reason") .. ":", true)
     title:SetContentAlignment(4)
 
-    local value = block:Add("ax.text")
+    local value = block:Add("DLabel")
     value:Dock(TOP)
-    value:DockMargin(ax.util:ScreenScale(4), 0, 0, 0)
-    value:SetFont("ax.small")
+    value:DockMargin(ScreenScale(4), 0, 0, 0)
+    value:SetFont("ixSmallFont")
     value:SetText(tostring(reasonText or ""), true)
     value:SetContentAlignment(4)
 
@@ -748,10 +745,10 @@ function PANEL:RebuildList()
     self.listScroll:Clear()
 
     if ( self.rows[1] == nil ) then
-        local noResults = self.listScroll:Add("ax.text")
+        local noResults = self.listScroll:Add("DLabel")
         noResults:Dock(TOP)
-        noResults:DockMargin(ax.util:ScreenScale(8), ax.util:ScreenScaleH(8), ax.util:ScreenScale(8), 0)
-        noResults:SetFont("ax.regular.italic")
+        noResults:DockMargin(ScreenScale(8), ScreenScale(8), ScreenScale(8), 0)
+        noResults:SetFont("ixMediumFont")
         noResults:SetText("No bans to display.", true)
         noResults:SetContentAlignment(4)
         return
@@ -763,14 +760,14 @@ function PANEL:RebuildList()
 
         local row = self.listScroll:Add("EditablePanel")
         row:Dock(TOP)
-        row:SetTall(ax.util:ScreenScaleH(46))
-        row:DockMargin(0, 0, 0, ax.util:ScreenScaleH(4))
+        row:SetTall(ScreenScale(46))
+        row:DockMargin(0, 0, 0, ScreenScale(4))
         row:SetMouseInputEnabled(true)
         row:SetCursor("hand")
         row.data = rowData
 
         row.Paint = function(this, width, height)
-            local glass = ax.theme:GetGlass()
+            local glass = ix.admin.theme:GetGlass()
             local fill = glass.button
 
             if ( this.data and math.floor(SafeNumber(this.data.id, 0)) == panel.selectedBanID ) then
@@ -779,16 +776,14 @@ function PANEL:RebuildList()
                 fill = glass.buttonHover
             end
 
-            ax.theme:DrawGlassPanel(0, 0, width, height, {
-                radius = 8,
+            ix.admin.theme:DrawGlassPanel(this, 0, 0, width, height, {
                 blur = 0.5,
-                fill = fill,
-                flags = ax.render.SHAPE_IOS
+                fill = fill
             })
 
             local accent = GetStatusColor(this.data and this.data.status or "unknown")
             surface.SetDrawColor(accent)
-            surface.DrawRect(0, 0, math.max(2, ax.util:ScreenScale(2)), height)
+            surface.DrawRect(0, 0, math.max(2, ScreenScale(2)), height)
         end
 
         function row:OnMousePressed(code)
@@ -796,17 +791,17 @@ function PANEL:RebuildList()
             panel:SelectSummary(self.data)
         end
 
-        local title = row:Add("ax.text")
+        local title = row:Add("DLabel")
         title:Dock(TOP)
-        title:DockMargin(ax.util:ScreenScale(6), ax.util:ScreenScaleH(3), ax.util:ScreenScale(6), 0)
-        title:SetFont("ax.regular.bold")
+        title:DockMargin(ScreenScale(6), ScreenScale(3), ScreenScale(6), 0)
+        title:SetFont("ixMediumFont")
         title:SetText("#" .. tostring(rowData.id or 0) .. "  " .. tostring(rowData.name or "Unknown"), true)
         title:SetContentAlignment(4)
 
-        local meta = row:Add("ax.text")
+        local meta = row:Add("DLabel")
         meta:Dock(TOP)
-        meta:DockMargin(ax.util:ScreenScale(6), 0, ax.util:ScreenScale(6), 0)
-        meta:SetFont("ax.small")
+        meta:DockMargin(ScreenScale(6), 0, ScreenScale(6), 0)
+        meta:SetFont("ixSmallFont")
 
         local status = FormatStatus(rowData.status)
         local online = rowData.is_online == true and "ONLINE" or "OFFLINE"
@@ -814,10 +809,10 @@ function PANEL:RebuildList()
         meta:SetText(status .. " | " .. online .. " | " .. duration .. " | " .. tostring(rowData.admin_name or "Console"), true)
         meta:SetContentAlignment(4)
 
-        local reason = row:Add("ax.text")
+        local reason = row:Add("DLabel")
         reason:Dock(FILL)
-        reason:DockMargin(ax.util:ScreenScale(6), 0, ax.util:ScreenScale(6), ax.util:ScreenScaleH(2))
-        reason:SetFont("ax.small.italic")
+        reason:DockMargin(ScreenScale(6), 0, ScreenScale(6), ScreenScale(2))
+        reason:SetFont("ixSmallFont")
         reason:SetText(TruncateText(rowData.reason or "No reason provided.", 96), true)
         reason:SetContentAlignment(4)
     end
@@ -829,10 +824,10 @@ function PANEL:RebuildDetail()
     self.detailScroll:Clear()
 
     if ( !self.selectedBanID ) then
-        local info = self.detailScroll:Add("ax.text")
+        local info = self.detailScroll:Add("DLabel")
         info:Dock(TOP)
-        info:DockMargin(ax.util:ScreenScale(4), ax.util:ScreenScaleH(6), 0, 0)
-        info:SetFont("ax.regular.italic")
+        info:DockMargin(ScreenScale(4), ScreenScale(6), 0, 0)
+        info:SetFont("ixMediumFont")
         info:SetText("Select a ban to inspect details.", true)
         info:SetContentAlignment(4)
         return
@@ -850,33 +845,33 @@ function PANEL:RebuildDetail()
     local statusText = FormatStatus(status)
     local bActive = IsBanActive(detail)
 
-    local header = self.detailScroll:Add("ax.text")
+    local header = self.detailScroll:Add("DLabel")
     header:Dock(TOP)
-    header:DockMargin(0, 0, 0, ax.util:ScreenScaleH(2))
-    header:SetFont("ax.regular.bold")
+    header:DockMargin(0, 0, 0, ScreenScale(2))
+    header:SetFont("ixMediumFont")
     header:SetText(name .. "  (#" .. tostring(banID) .. ")", true)
     header:SetContentAlignment(4)
 
-    local subHeader = self.detailScroll:Add("ax.text")
+    local subHeader = self.detailScroll:Add("DLabel")
     subHeader:Dock(TOP)
-    subHeader:DockMargin(0, 0, 0, ax.util:ScreenScaleH(4))
-    subHeader:SetFont("ax.small")
+    subHeader:DockMargin(0, 0, 0, ScreenScale(4))
+    subHeader:SetFont("ixSmallFont")
     subHeader:SetText(steamID64, true)
     subHeader:SetContentAlignment(4)
 
     self:AddSectionTitle("Actions")
     self:AddActionButton("Create Offline Ban", function()
         self:PromptCreateBan()
-    end, true)
+    end, self.canCreateBan)
     self:AddActionButton("Refresh Ban Detail", function()
         self:RequestDetail(banID)
     end, banID > 0)
     self:AddActionButton("Modify Selected Ban", function()
         self:PromptModifyBan()
-    end, bActive)
+    end, bActive and self.canModifyBans)
     self:AddActionButton("Revoke Selected Ban", function()
         self:PromptRevokeBan()
-    end, bActive)
+    end, bActive and self.canRevokeBans)
     self:AddActionButton("Open Steam Profile", function()
         gui.OpenURL("https://steamcommunity.com/profiles/" .. steamID64)
     end, steamID64 != "" and steamID64 != "Unknown")
@@ -917,20 +912,20 @@ function PANEL:RebuildDetail()
         self:AddSectionTitle("Recent History")
 
         for i = 1, #detail.history do
-            local line = self.detailScroll:Add("ax.text")
+            local line = self.detailScroll:Add("DLabel")
             line:Dock(TOP)
-            line:DockMargin(0, 0, 0, ax.util:ScreenScaleH(2))
-            line:SetFont("ax.small")
+            line:DockMargin(0, 0, 0, ScreenScale(2))
+            line:SetFont("ixSmallFont")
             line:SetText(BuildHistoryLine(detail.history[i]), true)
             line:SetContentAlignment(4)
         end
     end
 
     if ( self.requestingDetail and !istable(self.selectedDetail) ) then
-        local loading = self.detailScroll:Add("ax.text")
+        local loading = self.detailScroll:Add("DLabel")
         loading:Dock(TOP)
-        loading:DockMargin(0, ax.util:ScreenScaleH(6), 0, 0)
-        loading:SetFont("ax.small.italic")
+        loading:DockMargin(0, ScreenScale(6), 0, 0)
+        loading:SetFont("ixSmallFont")
         loading:SetText("Loading detailed ban data...", true)
         loading:SetContentAlignment(4)
     end
@@ -1074,35 +1069,35 @@ function PANEL:HandleErrorPayload(payload)
 
     NotifyClient(message, "error")
 
-    if ( ax.util and ax.util.PrintError ) then
-        ax.util:PrintError("[admin.bans] " .. message)
+    if ( ix.util and ix.util.PrintError ) then
+        ix.util:PrintError("[admin.bans] " .. message)
     end
 end
 
 function PANEL:OnRemove()
-    if ( ax.gui.admin_bans == self ) then
-        ax.gui.admin_bans = nil
+    if ( ix.gui.admin_bans == self ) then
+        ix.gui.admin_bans = nil
     end
 end
 
-vgui.Register("ax.tab.admin.bans", PANEL, "EditablePanel")
+vgui.Register("ix.tab.admin.bans", PANEL, "EditablePanel")
 
-ax.net:Hook("admin.bans.list", function(payload)
-    if ( !IsValid(ax.gui.admin_bans) ) then return end
-    ax.gui.admin_bans:HandleListPayload(payload)
+ix.net:Hook("admin.bans.list", function(payload)
+    if ( !IsValid(ix.gui.admin_bans) ) then return end
+    ix.gui.admin_bans:HandleListPayload(payload)
 end)
 
-ax.net:Hook("admin.bans.detail", function(payload)
-    if ( !IsValid(ax.gui.admin_bans) ) then return end
-    ax.gui.admin_bans:HandleDetailPayload(payload)
+ix.net:Hook("admin.bans.detail", function(payload)
+    if ( !IsValid(ix.gui.admin_bans) ) then return end
+    ix.gui.admin_bans:HandleDetailPayload(payload)
 end)
 
-ax.net:Hook("admin.bans.action_result", function(payload)
-    if ( !IsValid(ax.gui.admin_bans) ) then return end
-    ax.gui.admin_bans:HandleActionPayload(payload)
+ix.net:Hook("admin.bans.action_result", function(payload)
+    if ( !IsValid(ix.gui.admin_bans) ) then return end
+    ix.gui.admin_bans:HandleActionPayload(payload)
 end)
 
-ax.net:Hook("admin.bans.error", function(payload)
-    if ( !IsValid(ax.gui.admin_bans) ) then return end
-    ax.gui.admin_bans:HandleErrorPayload(payload)
+ix.net:Hook("admin.bans.error", function(payload)
+    if ( !IsValid(ix.gui.admin_bans) ) then return end
+    ix.gui.admin_bans:HandleErrorPayload(payload)
 end)

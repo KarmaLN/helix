@@ -124,7 +124,7 @@ ix.net:Hook("admin.activity.request_detail", function(client, payload)
     local steamID64 = tostring(payload.steamid64 or "")
     local search = TrimSearch(payload.search)
 
-    if ( !ix.type:Sanitise(ix.type.steamid64, steamID64) ) then
+    if ( !PLUGIN:NormalizeSteamID64(steamID64) ) then
         SendError(client, "Invalid SteamID64.", nonce)
         return
     end

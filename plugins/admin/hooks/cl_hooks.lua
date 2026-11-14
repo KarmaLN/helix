@@ -1,19 +1,31 @@
 local PLUGIN = PLUGIN or {}
 
-function PLUGIN:GetChatNameColor(client)
-end
-
 function PLUGIN:LoadFonts()
-    ix.font:CreateFamily("small.admin", "Courier New", 11)
-    ix.font:CreateFamily("regular.admin", "Courier New", 13)
-    ix.font:CreateFamily("large.admin", "Courier New", 17)
-    ix.font:CreateFamily("huge.admin", "Courier New", 21)
-    ix.font:CreateFamily("massive.admin", "Courier New", 25)
+    surface.CreateFont("ixAdminSmall", {
+        font = "Courier New",
+        size = 11,
+        weight = 500
+    })
+    surface.CreateFont("ixAdminRegular", {
+        font = "Courier New",
+        size = 13,
+        weight = 500
+    })
+    surface.CreateFont("ixAdminRegularBold", {
+        font = "Courier New",
+        size = 13,
+        weight = 800
+    })
+    surface.CreateFont("ixAdminHugeBold", {
+        font = "Courier New",
+        size = 21,
+        weight = 800
+    })
 end
 
 function PLUGIN:HUDPaint()
-    local client = ix.client
-    if ( !ix.util.IsValidPlayer(client) or !client:IsAdmin() ) then return end
+    local client = LocalPlayer()
+    if ( !ix.util.IsValidPlayer(client) or !ix.admin:CanAccessPrivilege(client, "Helix - Observer") ) then return end
 
     if ( !ix.option.Get("admin.esp") ) then return end
     if ( client:InVehicle() or !client:InNoclip() ) then return end
@@ -26,18 +38,20 @@ function PLUGIN:HUDPaint()
 end
 
 function PLUGIN:DrawItems()
-    local THRESHOLD = ix.util.ScreenScale(12) + ix.util.ScreenScaleH(12) -- pixels; distance under which same-class items will stack visually
+    local THRESHOLD = ScreenScale(12) * 2
 
     local stacks_by_class = {}
 
-    local items = ents.FindByClass("ax_item")
+    local items = ents.FindByClass("ix_item")
     for _ = 1, #items do
         local item = items[_]
+        local itemTable = item:GetItemTable()
+        if ( !istable(itemTable) ) then continue end
 
         local scr = item:GetPos():ToScreen()
         if ( !scr.visible ) then continue end
 
-        local cls = item:GetItemClass()
+        local cls = itemTable.uniqueID
         stacks_by_class[cls] = stacks_by_class[cls] or {}
 
         local placed = false
@@ -68,14 +82,14 @@ function PLUGIN:DrawItems()
             local x, y = stack.x, stack.y
             local count = #stack.items
 
-            local stored = ix.item.stored[cls]
+            local stored = ix.item.list[cls]
             if ( !stored ) then continue end
 
             local displayName = stored:GetName() or "Unknown Item"
-            draw.SimpleTextOutlined(displayName, "ix.regular.admin", x, y + 4, Color(255, 255, 0), TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM, 1, Color(0, 0, 0))
+            draw.SimpleTextOutlined(displayName, "ixAdminRegular", x, y + 4, Color(255, 255, 0), TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM, 1, Color(0, 0, 0))
 
             if ( count > 1 ) then
-                draw.SimpleTextOutlined("x" .. tostring(count), "ix.small.admin", x, y - 4, Color(255, 200, 0), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP, 1, Color(0, 0, 0))
+                draw.SimpleTextOutlined("x" .. tostring(count), "ixAdminSmall", x, y - 4, Color(255, 200, 0), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP, 1, Color(0, 0, 0))
             end
         end
     end
@@ -90,12 +104,12 @@ local ARMOR_COLOR = Color(120, 185, 255)
 local WEAPON_COLOR = Color(255, 220, 130)
 
 function PLUGIN:DrawPlayers()
-    local client = ix.client
-    if ( !ix.util.IsValidPlayer(client) or !client:IsAdmin() ) then return end
+    local client = LocalPlayer()
+    if ( !ix.util.IsValidPlayer(client) or !ix.admin:CanAccessPrivilege(client, "Helix - Observer") ) then return end
 
-    local nameFont = "ix.huge.admin.bold"
-    local subFont = "ix.regular.admin.bold"
-    local detailFont = "ix.small.admin"
+    local nameFont = "ixAdminHugeBold"
+    local subFont = "ixAdminRegularBold"
+    local detailFont = "ixAdminSmall"
     local nameLineHeight = draw.GetFontHeight(nameFont) * 0.95
     local subLineHeight = draw.GetFontHeight(subFont) * 1.0
     local detailLineHeight = draw.GetFontHeight(detailFont) * 1.05
@@ -178,15 +192,15 @@ function PLUGIN:DrawPlayers()
     end
 end
 
--- Search for Parallax Entities and draw their name
+-- Search for Helix entities and draw their name.
 local blacklist = {
     ["ix_item"] = true,
     ["ix_hands"] = true,
 }
 
 function PLUGIN:DrawEntities()
-    local client = ix.client
-    if ( !ix.util.IsValidPlayer(client) or !client:IsAdmin() ) then return end
+    local client = LocalPlayer()
+    if ( !ix.util.IsValidPlayer(client) or !ix.admin:CanAccessPrivilege(client, "Helix - Observer") ) then return end
 
     local gamemodeItems = ents.FindByClass("ix_*")
 
@@ -200,7 +214,7 @@ function PLUGIN:DrawEntities()
         local class = ent:GetClass() or "Unknown"
         local name = ent.PrintName or class
 
-        draw.SimpleTextOutlined(name, "ix.regular.admin.bold", scr.x, scr.y + 4, Color(255, 0, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM, 1, Color(0, 0, 0))
-        draw.SimpleTextOutlined(class, "ix.small.admin", scr.x, scr.y - 4, Color(200, 0, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP, 1, Color(0, 0, 0))
+        draw.SimpleTextOutlined(name, "ixAdminRegularBold", scr.x, scr.y + 4, Color(255, 0, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM, 1, Color(0, 0, 0))
+        draw.SimpleTextOutlined(class, "ixAdminSmall", scr.x, scr.y - 4, Color(200, 0, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP, 1, Color(0, 0, 0))
     end
 end

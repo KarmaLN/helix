@@ -25,7 +25,7 @@ local function HasUsergroupAccess(client, usergroup)
     return ix.admin:UsergroupInherits(playerUsergroup, usergroup)
 end
 
---- Returns whether this player has administrator access through Parallax usergroups. Overrides Garry's Mod's native Player:IsAdmin so custom usergroups inheriting from `admin` are supported.
+--- Returns whether this player has administrator access through admin usergroups. Overrides Garry's Mod's native Player:IsAdmin so custom usergroups inheriting from `admin` are supported.
 ---@realm shared
 ---@return boolean isAdmin Whether the player is an administrator
 function player:IsAdmin()
@@ -39,7 +39,7 @@ function player:IsAdmin()
     return false
 end
 
---- Returns whether this player has super administrator access through Parallax usergroups. Overrides Garry's Mod's native Player:IsSuperAdmin so custom usergroups inheriting from `superadmin` are supported.
+--- Returns whether this player has super administrator access through admin usergroups. Overrides Garry's Mod's native Player:IsSuperAdmin so custom usergroups inheriting from `superadmin` are supported.
 ---@realm shared
 ---@return boolean isSuperAdmin Whether the player is a super administrator
 function player:IsSuperAdmin()
@@ -54,7 +54,7 @@ function player:IsSuperAdmin()
 end
 
 if ( SERVER ) then
-    --- Creates a Parallax-managed ban for this player. Overrides Garry's Mod's native Player:Ban so every ban is persisted in ax_bans.
+    --- Creates an admin-plugin ban for this player. Overrides Garry's Mod's native Player:Ban so every ban is persisted in ix_bans.
     ---@realm server
     ---@param minutes number Ban duration in minutes. Use 0 for permanent.
     ---@param bKick boolean Whether to kick the player after creating the ban.
