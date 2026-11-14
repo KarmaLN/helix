@@ -50,8 +50,8 @@ color_debug = Color(150, 150, 150)
 -- @realm shared
 -- @param ... any Values to print.
 -- @return table The prepared argument array that was printed.
--- @usage ix.util:Print("Module loaded:", moduleName)
--- ix.util:Print("Player connected:", client)
+-- @usage ix.util.Print("Module loaded:", moduleName)
+-- ix.util.Print("Player connected:", client)
 function ix.util.Print(...)
     local args = ix.util.PreparePackage(...)
     local printColor = color_print
@@ -67,7 +67,7 @@ end
 -- @realm shared
 -- @param ... any Values to include in the error message.
 -- @return table The prepared argument array that was printed.
--- @usage ix.util:PrintError("Failed to load config:", err)
+-- @usage ix.util.PrintError("Failed to load config:", err)
 function ix.util.PrintError(...)
     local args = ix.util.PreparePackage(...)
 
@@ -81,7 +81,7 @@ end
 -- @realm shared
 -- @param ... any Values to include in the warning.
 -- @return table The prepared argument array that was printed.
--- @usage ix.util:PrintWarning("Deprecated function called, use NewFunc instead")
+-- @usage ix.util.PrintWarning("Deprecated function called, use NewFunc instead")
 function ix.util.PrintWarning(...)
     local args = ix.util.PreparePackage(...)
     local warningColor = color_warning
@@ -96,8 +96,8 @@ end
 -- @realm shared
 -- @param ... any Values to include in the success message.
 -- @return table The prepared argument array that was printed.
--- @usage ix.util:PrintSuccess("Database connected:", dbName)
--- ix.util:PrintSuccess("Configuration saved to", path)
+-- @usage ix.util.PrintSuccess("Database connected:", dbName)
+-- ix.util.PrintSuccess("Configuration saved to", path)
 function ix.util.PrintSuccess(...)
     local args = ix.util.PreparePackage(...)
     local successColor = color_success
@@ -127,8 +127,8 @@ local rateLimitTracker = {}
 -- @realm shared
 -- @param ... any Values to include in the debug message.
 -- @return table|nil The prepared argument array when printed, nil when gated.
--- @usage ix.util:PrintDebug("Character loaded:", char:GetName())
--- ix.util:PrintDebug("Store set:", key, "=", value)
+-- @usage ix.util.PrintDebug("Character loaded:", char:GetName())
+-- ix.util.PrintDebug("Store set:", key, "=", value)
 function ix.util.PrintDebug(...)
     if ( developer:GetInt() < 1 ) then return end
 
