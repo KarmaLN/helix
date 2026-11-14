@@ -535,7 +535,7 @@ AddCommand("StopSounds", {
     end
 })
 
-ix.chat.Add("admin", {
+ix.chat.Register("admin", {
     displayName = "Radio",
     description = "Talk in Radio",
     prefix = {"@", "/admin"},
@@ -552,29 +552,5 @@ ix.chat.Add("admin", {
 
     CanHear = function(this, speaker, listener)
         return listener:IsAdmin()
-    end
-})
-
-AddCommand("CharForceSearch", {
-    description = "Search a player's inventory.",
-    adminOnly = true,
-    arguments = {
-        {
-            name = "target",
-            type = ix.type.player
-        }
-    },
-    OnRun = function(self, client, target)
-        if not ix.util.IsValidPlayer(target) then
-            client:Notify("Invalid player.", "error")
-            return
-        end
-
-        if not target:GetCharacter() then
-            client:Notify("Target has no character.", "error")
-            return
-        end
-
-        ix.admin:BeginSearch(client, target)
     end
 })
