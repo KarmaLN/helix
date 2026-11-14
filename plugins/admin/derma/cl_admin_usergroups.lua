@@ -418,4 +418,4 @@ function PANEL:OnRemove()
     end
 end
 
-vgui.Register("ix.tab.admin.usergroups", PANEL, "EditablePanel")
+vgui.Register("ixAdminUsergroups", PANEL, "EditablePanel")

@@ -631,7 +631,7 @@ function PANEL:OnRemove()
     end
 end
 
-vgui.Register("ix.tab.admin.activity", PANEL, "EditablePanel")
+vgui.Register("ixAdminActivity", PANEL, "EditablePanel")
 
 ix.net:Hook("admin.activity.list", function(payload)
     if ( !IsValid(ix.gui.admin_activity) ) then return end

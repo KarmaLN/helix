@@ -1071,7 +1071,7 @@ function PANEL:OnRemove()
     end
 end
 
-vgui.Register("ix.tab.admin.bans", PANEL, "EditablePanel")
+vgui.Register("ixAdminBans", PANEL, "EditablePanel")
 
 ix.net:Hook("admin.bans.list", function(payload)
     if ( !IsValid(ix.gui.admin_bans) ) then return end
