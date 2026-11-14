@@ -26,7 +26,7 @@
 -- @return table Flat array of values ready to unpack into `MsgC` or similar.
 -- @usage local pkg = ix.util:PreparePackage("Player joined:", somePlayer)
 -- MsgC(Color(255, 255, 255), unpack(pkg))
-function ix.util:PreparePackage(...)
+function ix.util.PreparePackage(...)
     local arguments = {...}
     local package = {}
 
@@ -61,7 +61,7 @@ color_debug = Color(150, 150, 150)
 -- @return table The prepared argument array that was printed.
 -- @usage ix.util:Print("Module loaded:", moduleName)
 -- ix.util:Print("Player connected:", client)
-function ix.util:Print(...)
+function ix.util.Print(...)
     local args = self:PreparePackage(...)
     local printColor = color_print
 
@@ -77,7 +77,7 @@ end
 -- @param ... any Values to include in the error message.
 -- @return table The prepared argument array that was printed.
 -- @usage ix.util:PrintError("Failed to load config:", err)
-function ix.util:PrintError(...)
+function ix.util.PrintError(...)
     local args = self:PreparePackage(...)
 
     ErrorNoHaltWithStack("[PARALLAX] [ERROR] " .. string.Trim(table.concat(args, " ")))
@@ -91,7 +91,7 @@ end
 -- @param ... any Values to include in the warning.
 -- @return table The prepared argument array that was printed.
 -- @usage ix.util:PrintWarning("Deprecated function called, use NewFunc instead")
-function ix.util:PrintWarning(...)
+function ix.util.PrintWarning(...)
     local args = self:PreparePackage(...)
     local warningColor = color_warning
 
@@ -107,7 +107,7 @@ end
 -- @return table The prepared argument array that was printed.
 -- @usage ix.util:PrintSuccess("Database connected:", dbName)
 -- ix.util:PrintSuccess("Configuration saved to", path)
-function ix.util:PrintSuccess(...)
+function ix.util.PrintSuccess(...)
     local args = self:PreparePackage(...)
     local successColor = color_success
 
@@ -138,7 +138,7 @@ local rateLimitTracker = {}
 -- @return table|nil The prepared argument array when printed, nil when gated.
 -- @usage ix.util:PrintDebug("Character loaded:", char:GetName())
 -- ix.util:PrintDebug("Store set:", key, "=", value)
-function ix.util:PrintDebug(...)
+function ix.util.PrintDebug(...)
     if ( developer:GetInt() < 1 ) then return end
 
     if ( ( CLIENT and debugRealm:GetInt() != 1 and debugRealm:GetInt() != 3 ) or ( SERVER and debugRealm:GetInt() != 2 and debugRealm:GetInt() != 3 ) ) then

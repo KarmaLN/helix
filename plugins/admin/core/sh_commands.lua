@@ -114,7 +114,7 @@ local function notifyCaller(client, message, notificationType)
         return
     end
 
-    ix.util:Print(message)
+    ix.util.Print(message)
 end
 
 local function printCallerLine(client, message)
@@ -126,7 +126,7 @@ local function printCallerLine(client, message)
         return
     end
 
-    ix.util:Print(message)
+    ix.util.Print(message)
 end
 
 AddCommand("PlySetUsergroup", {
