@@ -62,7 +62,7 @@ color_debug = Color(150, 150, 150)
 -- @usage ix.util:Print("Module loaded:", moduleName)
 -- ix.util:Print("Player connected:", client)
 function ix.util.Print(...)
-    local args = self:PreparePackage(...)
+    local args = ix.util.PreparePackage(...)
     local printColor = color_print
 
     MsgC(printColor, "[PARALLAX] ", unpack(args))
@@ -78,7 +78,7 @@ end
 -- @return table The prepared argument array that was printed.
 -- @usage ix.util:PrintError("Failed to load config:", err)
 function ix.util.PrintError(...)
-    local args = self:PreparePackage(...)
+    local args = ix.util.PreparePackage(...)
 
     ErrorNoHaltWithStack("[PARALLAX] [ERROR] " .. string.Trim(table.concat(args, " ")))
 
@@ -92,7 +92,7 @@ end
 -- @return table The prepared argument array that was printed.
 -- @usage ix.util:PrintWarning("Deprecated function called, use NewFunc instead")
 function ix.util.PrintWarning(...)
-    local args = self:PreparePackage(...)
+    local args = ix.util.PreparePackage(...)
     local warningColor = color_warning
 
     MsgC(warningColor, "[PARALLAX] [WARNING] ", unpack(args))
@@ -108,7 +108,7 @@ end
 -- @usage ix.util:PrintSuccess("Database connected:", dbName)
 -- ix.util:PrintSuccess("Configuration saved to", path)
 function ix.util.PrintSuccess(...)
-    local args = self:PreparePackage(...)
+    local args = ix.util.PreparePackage(...)
     local successColor = color_success
 
     MsgC(successColor, "[PARALLAX] [SUCCESS] ", unpack(args))
@@ -145,7 +145,7 @@ function ix.util.PrintDebug(...)
         return
     end
 
-    local args = self:PreparePackage(...)
+    local args = ix.util.PreparePackage(...)
 
     local filterText = debugFilter:GetString()
     if ( filterText != "" ) then
