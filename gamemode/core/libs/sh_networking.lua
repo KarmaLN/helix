@@ -98,11 +98,11 @@ function ix.net:QueueMessage(name, arguments, sendFunc, debugMessage, warningMes
         sendFunc()
 
         if ( isstring(debugMessage) and debugMessage != "" ) then
-            ix.util:PrintDebug(debugMessage)
+            ix.util.PrintDebug(debugMessage)
         end
 
         if ( isstring(warningMessage) and warningMessage != "" ) then
-            ix.util:PrintWarning(warningMessage)
+            ix.util.PrintWarning(warningMessage)
         end
 
         done()
@@ -312,7 +312,7 @@ net.Receive("ix.net.msg", function(len, client)
         callback(unpack(decoded))
     end
 
-    ix.util:PrintDebug("[NET] Received '" .. name .. "' from " .. (SERVER and client:Nick() or "server"))
+    ix.util.PrintDebug("[NET] Received '" .. name .. "' from " .. (SERVER and client:Nick() or "server"))
 end)
 
 --[[

@@ -1,15 +1,6 @@
---[[
-    Parallax Framework
-    Copyright (c) 2025-2026 Parallax Framework Contributors
 
-    This file is part of the Parallax Framework and is licensed under the MIT License.
-    You may use, copy, modify, merge, publish, distribute, and sublicense this file
-    under the terms of the LICENSE file included with this project.
 
-    Attribution is required. If you use or modify this file, you must retain this notice.
-]]
 
---- Utility helpers used across the Parallax framework (printing, file handling, text utilities, etc.).
 -- @module ix.util
 
 --- Printing and logging helpers.
@@ -24,7 +15,7 @@
 -- @realm shared
 -- @param ... any Any number of values to prepare.
 -- @return table Flat array of values ready to unpack into `MsgC` or similar.
--- @usage local pkg = ix.util:PreparePackage("Player joined:", somePlayer)
+-- @usage local pkg = ix.util.PreparePackage("Player joined:", somePlayer)
 -- MsgC(Color(255, 255, 255), unpack(pkg))
 function ix.util.PreparePackage(...)
     local arguments = {...}
@@ -54,7 +45,7 @@ color_warning = Color(255, 200, 100)
 color_success = Color(100, 255, 100)
 color_debug = Color(150, 150, 150)
 
---- Prints an informational message prefixed with `[PARALLAX]`.
+--- Prints an informational message prefixed with `[HELIX]`.
 -- Uses `MsgC` with `color_print` (blue-ish `Color(100, 150, 255)`). Visible on both server and client consoles. All arguments are processed through `PreparePackage` — entities are converted to strings and players get their SteamID64 appended. A trailing newline is included automatically.
 -- @realm shared
 -- @param ... any Values to print.
@@ -65,12 +56,12 @@ function ix.util.Print(...)
     local args = ix.util.PreparePackage(...)
     local printColor = color_print
 
-    MsgC(printColor, "[PARALLAX] ", unpack(args))
+    MsgC(printColor, "[HELIX] ", unpack(args))
 
     return args
 end
 
---- Prints an error message prefixed with `[PARALLAX] [ERROR]`, with a stack trace.
+--- Prints an error message prefixed with `[HELIX] [ERROR]`, with a stack trace.
 -- Uses `ErrorNoHaltWithStack`, so the full call stack is included in the console output. Execution continues after the call — this does NOT throw.
 -- Use this for non-fatal errors where you want clear diagnostics without stopping the current execution path. Arguments are joined with spaces via `table.concat` after `PreparePackage` processing.
 -- @realm shared
@@ -80,12 +71,12 @@ end
 function ix.util.PrintError(...)
     local args = ix.util.PreparePackage(...)
 
-    ErrorNoHaltWithStack("[PARALLAX] [ERROR] " .. string.Trim(table.concat(args, " ")))
+    ErrorNoHaltWithStack("[HELIX] [ERROR] " .. string.Trim(table.concat(args, " ")))
 
     return args
 end
 
---- Prints a warning message prefixed with `[PARALLAX] [WARNING]`.
+--- Prints a warning message prefixed with `[HELIX] [WARNING]`.
 -- Uses `MsgC` with `color_warning` (orange `Color(255, 200, 100)`). No stack trace is included — use `PrintError` when a stack trace is needed. Suitable for recoverable conditions that should be visible in the console without alarming users or halting execution.
 -- @realm shared
 -- @param ... any Values to include in the warning.
@@ -95,12 +86,12 @@ function ix.util.PrintWarning(...)
     local args = ix.util.PreparePackage(...)
     local warningColor = color_warning
 
-    MsgC(warningColor, "[PARALLAX] [WARNING] ", unpack(args))
+    MsgC(warningColor, "[HELIX] [WARNING] ", unpack(args))
 
     return args
 end
 
---- Prints a success message prefixed with `[PARALLAX] [SUCCESS]`.
+--- Prints a success message prefixed with `[HELIX] [SUCCESS]`.
 -- Uses `MsgC` with `color_success` (green `Color(100, 255, 100)`). Use to confirm that an operation completed as expected — module loads, database connections established, configuration saved successfully, etc.
 -- @realm shared
 -- @param ... any Values to include in the success message.
@@ -111,7 +102,7 @@ function ix.util.PrintSuccess(...)
     local args = ix.util.PreparePackage(...)
     local successColor = color_success
 
-    MsgC(successColor, "[PARALLAX] [SUCCESS] ", unpack(args))
+    MsgC(successColor, "[HELIX] [SUCCESS] ", unpack(args))
 
     return args
 end

@@ -1,13 +1,3 @@
---[[
-    Parallax Framework
-    Copyright (c) 2025-2026 Parallax Framework Contributors
-
-    This file is part of the Parallax Framework and is licensed under the MIT License.
-    You may use, copy, modify, merge, publish, distribute, and sublicense this file
-    under the terms of the LICENSE file included with this project.
-
-    Attribution is required. If you use or modify this file, you must retain this notice.
-]]
 
 local PLUGIN = PLUGIN or ix.admin or {}
 ix.admin = PLUGIN
@@ -660,7 +650,7 @@ if ( SERVER ) then
             if ( ix.util.IsValidPlayer(client) ) then
                 client:Notify(usage, "info")
             else
-                ix.util:Print(usage)
+                ix.util.Print(usage)
             end
 
             return
@@ -672,7 +662,7 @@ if ( SERVER ) then
             if ( ix.util.IsValidPlayer(client) ) then
                 client:Notify(message, "error")
             else
-                ix.util:PrintWarning(message)
+                ix.util.PrintWarning(message)
             end
 
             return
@@ -683,7 +673,7 @@ if ( SERVER ) then
                 if ( ix.util.IsValidPlayer(client) ) then
                     client:Notify(err or "Failed to set usergroup.", "error")
                 else
-                    ix.util:PrintWarning(err or "Failed to set usergroup.")
+                    ix.util.PrintWarning(err or "Failed to set usergroup.")
                 end
 
                 return
@@ -697,7 +687,7 @@ if ( SERVER ) then
             if ( ix.util.IsValidPlayer(client) ) then
                 client:Notify(message, "success")
             else
-                ix.util:Print(message)
+                ix.util.Print(message)
             end
         end)
     end)

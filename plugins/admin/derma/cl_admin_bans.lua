@@ -1,13 +1,4 @@
---[[
-    Parallax Framework
-    Copyright (c) 2025-2026 Parallax Framework Contributors
 
-    This file is part of the Parallax Framework and is licensed under the MIT License.
-    You may use, copy, modify, merge, publish, distribute, and sublicense this file
-    under the terms of the LICENSE file included with this project.
-
-    Attribution is required. If you use or modify this file, you must retain this notice.
-]]
 
 local PANEL = {}
 
@@ -128,7 +119,7 @@ local function NotifyClient(message, notificationType)
         return
     end
 
-    ix.util:Print(message)
+    ix.util.Print(message)
 end
 
 local function IsBanActive(banData)
@@ -1070,7 +1061,7 @@ function PANEL:HandleErrorPayload(payload)
     NotifyClient(message, "error")
 
     if ( ix.util and ix.util.PrintError ) then
-        ix.util:PrintError("[admin.bans] " .. message)
+        ix.util.PrintError("[admin.bans] " .. message)
     end
 end
 
